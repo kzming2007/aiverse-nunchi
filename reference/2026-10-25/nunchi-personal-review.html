@@ -1,0 +1,259 @@
+<div id="nunchi-personal-review">
+  <div class="viz-row"><strong>5초 눈치게임</strong><span class="text-small">개인 검토안 · 10판 · 겹침 ±0.3초</span></div>
+  <div class="viz-controls">
+    <label class="form-label">플레이 방식
+      <select class="form-select" id="nr-play">
+        <option value="human">직접 눌러보기</option>
+        <option value="cue">모의: 첫 신호 0.65초 뒤</option>
+        <option value="absolute">모의: 항상 2.5초 근처</option>
+        <option value="switch">모의: 6판부터 전략 변경</option>
+        <option value="uniform">모의: 매번 무작위</option>
+        <option value="observeAll">모의: 모두 누른 뒤 피하기</option>
+      </select>
+    </label>
+    <label class="form-label">누적 학습용 합성 데이터
+      <select class="form-select" id="nr-crowd">
+        <option value="none">없음</option>
+        <option value="similar">20명 · 첫 신호를 따르는 습관</option>
+        <option value="mixed">20명 · 서로 다른 습관</option>
+      </select>
+    </label>
+  </div>
+  <label class="form-check"><input class="form-check-input" id="nr-live" type="checkbox" checked><span class="form-check-label">상대 신호를 실시간으로 보기</span></label>
+  <div class="viz-row nr-status"><span id="nr-phase" aria-live="polite">시작 전</span><span id="nr-clock" class="tabular-nums">0.00 / 5.00초</span></div>
+  <div class="progress" role="progressbar" aria-label="이번 판 경과 시간" aria-valuenow="0" aria-valuemin="0" aria-valuemax="5" id="nr-progress"><div class="progress-bar" id="nr-bar" style="width:0%"></div></div>
+  <div id="nr-timeline" class="nr-timeline" role="img" aria-label="0초부터 5초까지 상대와 나의 입력 시각">
+    <div class="nr-lane"><span>신호 A</span><div class="nr-track"><span class="nr-mark" data-index="0" hidden></span></div><span class="nr-value tabular-nums" data-value="0">대기</span></div>
+    <div class="nr-lane"><span>신호 B</span><div class="nr-track"><span class="nr-mark" data-index="1" hidden></span></div><span class="nr-value tabular-nums" data-value="1">대기</span></div>
+    <div class="nr-lane"><span>개인 예측</span><div class="nr-track"><span class="nr-mark nr-learn" data-index="2" hidden></span></div><span class="nr-value tabular-nums" data-value="2">대기</span></div>
+    <div class="nr-lane"><span>누적 예측</span><div class="nr-track"><span class="nr-mark nr-crowd" data-index="3" hidden></span></div><span class="nr-value tabular-nums" data-value="3">대기</span></div>
+    <div class="nr-lane"><span>나</span><div class="nr-track"><span id="nr-window" hidden></span><span class="nr-mark nr-human" data-index="4" hidden></span></div><span class="nr-value tabular-nums" data-value="4">대기</span></div>
+    <div class="nr-lane"><span></span><div class="nr-axis"><span>0초</span><span>2.5초</span><span>5초</span></div><span></span></div>
+  </div>
+  <div class="viz-row nr-actions">
+    <button class="btn btn-primary" id="nr-main" type="button">10판 시작</button>
+    <span id="nr-stop-wrap" hidden><button class="btn" id="nr-stop" type="button">이번 회차 종료</button></span>
+  </div>
+  <div id="nr-result" aria-live="polite">상대의 입력 시각은 판 시작 전에 결정됩니다.</div>
+  <div id="nr-learning" class="text-small">개인 기록 0건 · 누적 기록 0건</div>
+  <div id="nr-summary" class="nr-summary" hidden></div>
+  <div id="nr-history-wrap" hidden>
+    <table class="table table-sm"><thead><tr><th class="text-nowrap">판</th><th class="text-nowrap">내 입력</th><th class="text-nowrap">결과</th><th>겹친 상대</th></tr></thead><tbody id="nr-history"></tbody></table>
+  </div>
+</div>
+<style>
+#nunchi-personal-review { color:var(--foreground); }
+#nunchi-personal-review .nr-status { margin-top:16px; margin-bottom:8px; justify-content:space-between; }
+#nunchi-personal-review .nr-timeline { margin-top:16px; margin-bottom:16px; }
+#nunchi-personal-review .nr-lane { display:grid; grid-template-columns:76px minmax(0,1fr) 68px; align-items:center; gap:8px; min-height:30px; }
+#nunchi-personal-review .nr-track { position:relative; height:4px; background:var(--muted); margin:0 5px; }
+#nunchi-personal-review .nr-mark { position:absolute; width:10px; height:10px; top:-3px; margin-left:-5px; border-radius:50%; background:var(--foreground); }
+#nunchi-personal-review .nr-learn { background:var(--viz-series-1); }
+#nunchi-personal-review .nr-crowd { background:var(--viz-series-2); }
+#nunchi-personal-review .nr-human { background:var(--viz-series-3); border-radius:0; }
+#nunchi-personal-review #nr-window { position:absolute; top:-6px; height:16px; background:color-mix(in srgb,var(--viz-series-3) 18%,transparent); }
+#nunchi-personal-review .nr-axis { display:flex; justify-content:space-between; color:var(--muted-foreground); }
+#nunchi-personal-review .nr-value { text-align:right; }
+#nunchi-personal-review .nr-actions { margin-bottom:12px; }
+#nunchi-personal-review #nr-learning { margin-top:8px; }
+#nunchi-personal-review .nr-summary { margin-top:16px; }
+#nunchi-personal-review #nr-history-wrap { margin-top:12px; }
+</style>
+<script>
+// BEGIN NUNCHI CORE
+globalThis.NunchiCore = (() => {
+  const T = 5, MARGIN = .3;
+  const names = ['신호 A', '신호 B', '개인 예측', '누적 예측'];
+  const clamp = x => Math.max(.05, Math.min(4.95, x));
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => {
+      s=(s+0x6d2b79f5)>>>0;
+      let t=Math.imul(s^(s>>>15),s|1);
+      t^=t+Math.imul(t^(t>>>7),t|61);
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+  function gaussian(r) { return Math.sqrt(-2*Math.log(Math.max(1e-12,r())))*Math.cos(2*Math.PI*r()); }
+  function signals(r) { return [.8+.8*r(), 3.2+.8*r()]; }
+  // Data fit: ridge regression of input time on signal A. Only earlier rounds enter rows.
+  function fit(rows, a) {
+    if (rows.length < 2) return null;
+    let s0=.02, sx=0, sxx=.05, sy=.02*2.5, sxy=0;
+    for (const p of rows) {
+      if (!Number.isFinite(p.t)) continue;
+      const x=p.a-1.2; s0++; sx+=x; sxx+=x*x; sy+=p.t; sxy+=x*p.t;
+    }
+    const det=s0*sxx-sx*sx;
+    const intercept=(sy*sxx-sx*sxy)/det;
+    const slope=(s0*sxy-sx*sy)/det;
+    return {time:clamp(intercept+slope*(a-1.2)), intercept, slope};
+  }
+  function strategy(kind, a, round, r) {
+    const noise=.08*gaussian(r);
+    if (kind==='cue') return clamp(a+.65+noise);
+    if (kind==='absolute') return clamp(2.5+noise);
+    if (kind==='switch') return clamp(a+(round<5?.65:1.65)+noise);
+    if (kind==='edge') return clamp(.08+.015*gaussian(r));
+    if (kind==='late') return clamp(a+1.65+noise);
+    return T*r();
+  }
+  function crowd(count, kind='similar', seed=8051) {
+    const r=rng(seed), rows=[];
+    for(let person=0;person<count;person++) {
+      const type=kind==='similar'?'cue':['cue','late','absolute','uniform'][person%4];
+      for(let k=0;k<10;k++) { const [a]=signals(r); rows.push({a,t:strategy(type,a,k,r)}); }
+    }
+    return rows;
+  }
+  function plan(history, archive, r) {
+    const [a,b]=signals(r), rows=history.filter(x=>Number.isFinite(x.t)).slice(-8);
+    const ownFallback=T*r(), populationFallback=T*r(), referenceRandom=T*r();
+    const own=fit(rows,a), population=fit(archive,a);
+    const times=[a,b,own?own.time:ownFallback,population?population.time:populationFallback];
+    return Object.freeze({a,b,times:Object.freeze(times), ownN:rows.length, crowdN:archive.length,
+      ownModel:own, crowdModel:population, rule:clamp(a+.65), random:referenceRandom});
+  }
+  function hit(pred,t,margin=MARGIN) { return Number.isFinite(t)&&Math.abs(pred-t)<=margin+1e-10; }
+  function resolve(p,t) {
+    if(t!==null && (!Number.isFinite(t)||t<0||t>=T)) throw new Error('input outside 0 <= t < 5');
+    const hits=p.times.map((v,i)=>hit(v,t)?names[i]:null).filter(Boolean);
+    return {a:p.a,t,hits,safe:t!==null&&hits.length===0,ownHit:hit(p.times[2],t),ruleHit:hit(p.rule,t),randomHit:hit(p.random,t),plan:p};
+  }
+  function replay(kind, archive=[], seed=20261025) {
+    const r=rng(seed), playerR=rng(seed^0x9e3779b9), history=[];
+    for(let k=0;k<10;k++) {
+      const p=plan(history,archive,r);
+      // Equivalent to observing all four presses, then waiting .35 s, capped at 4.99 s.
+      const t=kind==='observeAll'?Math.min(4.99,Math.max(...p.times)+.35):strategy(kind,p.a,k,playerR);
+      history.push(resolve(p,t));
+    }
+    return history;
+  }
+  return {T,MARGIN,names,clamp,rng,gaussian,signals,fit,strategy,crowd,plan,hit,resolve,replay};
+})();
+// END NUNCHI CORE
+(() => {
+  const root=document.getElementById('nunchi-personal-review'), C=globalThis.NunchiCore;
+  const el=id=>root.querySelector('#nr-'+id);
+  const marks=[...root.querySelectorAll('[data-index]')], values=[...root.querySelectorAll('[data-value]')];
+  let history=[], archive=[], random=C.rng(20261025), current=null, started=0, input=null, raf=0, running=false, seed=20261025;
+  const fmt=t=>t===null?'미입력':t.toFixed(2)+'초';
+  function paint(p,t,elapsed,complete=false) {
+    const times=p?[...p.times,t]:[null,null,null,null,null];
+    for(let i=0;i<5;i++) {
+      const value=times[i], visible=Number.isFinite(value)&&(complete||(i===4?true:el('live').checked&&value<=elapsed));
+      marks[i].hidden=!visible; values[i].textContent=visible?fmt(value):(complete&&i===4?'미입력':'대기');
+      if(visible) marks[i].style.left=(100*value/5)+'%';
+    }
+    el('window').hidden=!(complete&&Number.isFinite(t));
+    if(complete&&Number.isFinite(t)) {
+      const left=Math.max(0,t-C.MARGIN), right=Math.min(5,t+C.MARGIN);
+      el('window').style.left=(20*left)+'%'; el('window').style.width=(20*(right-left))+'%';
+    }
+    el('clock').textContent=elapsed.toFixed(2)+' / 5.00초';
+    el('bar').style.width=(20*elapsed)+'%'; el('progress').setAttribute('aria-valuenow',elapsed.toFixed(2));
+  }
+  function save() {
+    const h=history.map(x=>({a:x.a,t:x.t,plan:{...x.plan,times:[...x.plan.times]}}));
+    const modelContent={kind:'nunchi-personal-review',version:1,mode:el('play').value,syntheticPrior:el('crowd').value,live:el('live').checked,
+      completed:history.length,safe:history.filter(x=>x.safe).length,inputs:history.map(x=>x.t),personalHits:history.filter(x=>x.ownHit).length,fixedRuleHits:history.filter(x=>x.ruleHit).length};
+    const promise=window.openai?.setWidgetState?.({modelContent,privateContent:{history:h,seed}});
+    if(promise?.catch) promise.catch(()=>{});
+  }
+  function showHistory() {
+    const wins=history.filter(x=>x.safe).length;
+    el('history-wrap').hidden=history.length===0;
+    el('history').replaceChildren(...history.map((x,i)=>{
+      const tr=document.createElement('tr');
+      for(const [column,text] of [String(i+1),fmt(x.t),x.safe?'피함':x.t===null?'미입력':'겹침',x.hits.join(', ')||'없음'].entries()) {
+        const td=document.createElement('td'); td.textContent=text; if(column<3) td.className='text-nowrap'; tr.append(td);
+      }
+      return tr;
+    }));
+    el('phase').textContent=(history.length===10?'회차 완료':history.length+' / 10판 완료')+' · 피한 판 '+wins+'회';
+    const last=history.at(-1);
+    if(last) {
+      el('result').textContent=last.t===null?'미입력으로 이번 판 실패':last.safe?'이번 판은 모든 신호를 피했습니다.':'겹친 상대: '+last.hits.join(', ');
+      el('learning').textContent='이번 판 예측에 사용: 개인 '+last.plan.ownN+'건 · 누적 합성 '+last.plan.crowdN+'건'+(last.plan.ownN<2?' · 개인 상대 무작위':'')+(last.plan.crowdN<2?' · 누적 상대 무작위':'');
+    }
+    el('summary').hidden=history.length<10;
+    if(history.length===10) {
+      const valid=history.filter(x=>x.t!==null), own=valid.filter(x=>x.ownHit).length, rule=valid.filter(x=>x.ruleHit).length, randomHits=valid.filter(x=>x.randomHit).length;
+      const mean=valid.length?valid.reduce((s,x)=>s+x.t,0)/valid.length:0;
+      el('summary').textContent='같은 입력으로 비교: 개인 예측 '+own+'/'+valid.length+'회 · 고정 규칙(A+0.65초) '+rule+'/'+valid.length+'회 · 무작위 '+randomHits+'/'+valid.length+'회 적중'+(valid.length?' · 평균 입력 '+mean.toFixed(2)+'초':'');
+    }
+  }
+  function setControls(locked) { el('play').disabled=locked; el('crowd').disabled=locked; el('live').disabled=locked||el('play').value!=='human'; }
+  function finish() {
+    running=false; cancelAnimationFrame(raf);
+    history.push(C.resolve(current,input)); paint(current,input,5,true); showHistory();
+    el('main').disabled=false; el('main').textContent=history.length===10?'새 회차 시작':'다음 판 시작';
+    el('stop-wrap').hidden=history.length===10;
+    if(history.length===10) setControls(false);
+    save();
+  }
+  function tick() {
+    if(!running) return;
+    const elapsed=Math.min(5,(performance.now()-started)/1000);
+    paint(current,input,elapsed);
+    if(elapsed>=5) finish(); else raf=requestAnimationFrame(tick);
+  }
+  function press() {
+    if(!running||input!==null) return;
+    const elapsed=(performance.now()-started)/1000;
+    if(elapsed>=5) { finish(); return; }
+    input=elapsed; el('main').disabled=true; el('main').textContent='입력 완료 · 결과 대기'; paint(current,input,elapsed);
+  }
+  function beginRound() {
+    current=C.plan(history,archive,random); input=null; running=true; started=performance.now();
+    el('main').disabled=false; el('main').textContent='지금 누르기'; el('stop-wrap').hidden=false;
+    el('result').textContent='입력 시각 사전 결정 완료'; el('phase').textContent=(history.length+1)+' / 10판';
+    el('learning').textContent='개인 기록 '+current.ownN+'건 · 누적 합성 '+current.crowdN+'건';
+    raf=requestAnimationFrame(tick);
+  }
+  function startSession() {
+    history=[]; current=null; input=null; seed++; random=C.rng(seed);
+    const source=el('crowd').value; archive=source==='none'?[]:C.crowd(20,source);
+    el('summary').hidden=true; el('history-wrap').hidden=true;
+    if(el('play').value!=='human') {
+      el('live').checked=true; setControls(false);
+      history=C.replay(el('play').value,archive,seed); current=history.at(-1).plan;
+      paint(current,history.at(-1).t,5,true); showHistory();
+      el('phase').textContent='모의 10판 완료 · 가상 시각 · 피한 판 '+history.filter(x=>x.safe).length+'회';
+      el('main').textContent='모의 10판 다시 실행'; el('stop-wrap').hidden=true; save();
+    } else { setControls(true); beginRound(); }
+  }
+  el('main').addEventListener('click',()=>{ if(running) press(); else if(!history.length||history.length===10) startSession(); else beginRound(); });
+  el('play').addEventListener('change',()=>{ if(el('play').value!=='human') el('live').checked=true; setControls(false); });
+  el('stop').addEventListener('click',()=>{
+    running=false; cancelAnimationFrame(raf); history=[]; current=null; setControls(false); paint(null,null,0);
+    el('main').disabled=false; el('main').textContent='10판 시작'; el('stop-wrap').hidden=true;
+    showHistory(); el('result').textContent='회차 종료'; el('learning').textContent='새 회차는 개인 기록 0건으로 시작'; save();
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden&&running) {
+      running=false; cancelAnimationFrame(raf); el('main').disabled=false; el('main').textContent='이번 판 다시 시작';
+      el('result').textContent='화면 전환으로 이번 판을 취소했습니다.';
+    }
+  });
+  function restore(snapshot) {
+    if(running||snapshot?.modelContent?.kind!=='nunchi-personal-review'||snapshot.modelContent.version!==1) return;
+    const m=snapshot.modelContent, h=snapshot.privateContent?.history;
+    if(!Array.isArray(h)||h.length>10) return;
+    if([...el('play').options].some(o=>o.value===m.mode)) el('play').value=m.mode;
+    if([...el('crowd').options].some(o=>o.value===m.syntheticPrior)) el('crowd').value=m.syntheticPrior;
+    el('live').checked=m.live!==false;
+    try { history=h.filter(x=>x.plan&&Array.isArray(x.plan.times)&&x.plan.times.length===4&&x.plan.times.every(Number.isFinite)).map(x=>C.resolve(x.plan,x.t)); } catch { history=[]; }
+    seed=Number.isInteger(snapshot.privateContent?.seed)?snapshot.privateContent.seed:20261025; random=C.rng(seed+history.length);
+    archive=el('crowd').value==='none'?[]:C.crowd(20,el('crowd').value);
+    showHistory();
+    if(history.length) { const last=history.at(-1); paint(last.plan,last.t,5,true); }
+    el('main').textContent=!history.length?'10판 시작':history.length===10?'새 회차 시작':'다음 판 시작';
+    el('stop-wrap').hidden=history.length===0||history.length===10;
+    setControls(history.length>0&&history.length<10);
+  }
+  restore(window.openai?.widgetState);
+  window.addEventListener('openai:set_globals',event=>restore(event.detail?.globals?.widgetState));
+})();
+</script>

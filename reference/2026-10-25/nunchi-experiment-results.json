@@ -1,0 +1,786 @@
+{
+  "version": 1,
+  "assumptions": {
+    "seconds": 5,
+    "roundsPerSession": 10,
+    "overlapHalfWidthSeconds": 0.3,
+    "syntheticPlayerNoiseStdSeconds": 0.08,
+    "personalWindow": 8,
+    "currentRoundExcludedFromTraining": true,
+    "independentPredictorEvaluation": true,
+    "funMeasured": false
+  },
+  "checks": "passed",
+  "comparisons": [
+    {
+      "strategy": "cue",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 1233,
+        "fixedCueRule": 9995,
+        "previousTimeRule": 5488,
+        "personalRegression": 7913
+      },
+      "hitRatePercent": {
+        "random": 12.33,
+        "fixedCueRule": 99.95,
+        "previousTimeRule": 54.88,
+        "personalRegression": 79.13
+      },
+      "byRoundPercent": [
+        {
+          "random": 13.2,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 13.2,
+          "personalRegression": 13.2
+        },
+        {
+          "random": 11.6,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 58.8,
+          "personalRegression": 11.6
+        },
+        {
+          "random": 12.1,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 59.7,
+          "personalRegression": 82.3
+        },
+        {
+          "random": 11.5,
+          "fixedCueRule": 100,
+          "previousTimeRule": 60.7,
+          "personalRegression": 92.2
+        },
+        {
+          "random": 12,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 57.9,
+          "personalRegression": 95.8
+        },
+        {
+          "random": 13,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 59,
+          "personalRegression": 98.4
+        },
+        {
+          "random": 11.7,
+          "fixedCueRule": 100,
+          "previousTimeRule": 60.5,
+          "personalRegression": 98.9
+        },
+        {
+          "random": 11,
+          "fixedCueRule": 100,
+          "previousTimeRule": 62.5,
+          "personalRegression": 99.2
+        },
+        {
+          "random": 13.2,
+          "fixedCueRule": 100,
+          "previousTimeRule": 58.1,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 14,
+          "fixedCueRule": 100,
+          "previousTimeRule": 58.4,
+          "personalRegression": 99.8
+        }
+      ]
+    },
+    {
+      "strategy": "absolute",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 1210,
+        "fixedCueRule": 759,
+        "previousTimeRule": 9053,
+        "personalRegression": 8221
+      },
+      "hitRatePercent": {
+        "random": 12.1,
+        "fixedCueRule": 7.59,
+        "previousTimeRule": 90.53,
+        "personalRegression": 82.21
+      },
+      "byRoundPercent": [
+        {
+          "random": 11.4,
+          "fixedCueRule": 8.4,
+          "previousTimeRule": 11.4,
+          "personalRegression": 11.4
+        },
+        {
+          "random": 12.3,
+          "fixedCueRule": 7.8,
+          "previousTimeRule": 98.9,
+          "personalRegression": 12.3
+        },
+        {
+          "random": 12.1,
+          "fixedCueRule": 8.4,
+          "previousTimeRule": 99.1,
+          "personalRegression": 99.8
+        },
+        {
+          "random": 11.3,
+          "fixedCueRule": 6.4,
+          "previousTimeRule": 99.4,
+          "personalRegression": 99.6
+        },
+        {
+          "random": 12.9,
+          "fixedCueRule": 8.2,
+          "previousTimeRule": 99.3,
+          "personalRegression": 99.6
+        },
+        {
+          "random": 11.7,
+          "fixedCueRule": 7.2,
+          "previousTimeRule": 98.9,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 12.1,
+          "fixedCueRule": 6,
+          "previousTimeRule": 99.6,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 12.9,
+          "fixedCueRule": 8.5,
+          "previousTimeRule": 99.5,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 13,
+          "fixedCueRule": 7.4,
+          "previousTimeRule": 99.7,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 11.3,
+          "fixedCueRule": 7.6,
+          "previousTimeRule": 99.5,
+          "personalRegression": 99.8
+        }
+      ]
+    },
+    {
+      "strategy": "switch",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 1209,
+        "fixedCueRule": 4996,
+        "previousTimeRule": 4912,
+        "personalRegression": 3206
+      },
+      "hitRatePercent": {
+        "random": 12.09,
+        "fixedCueRule": 49.96,
+        "previousTimeRule": 49.12,
+        "personalRegression": 32.06
+      },
+      "byRoundPercent": [
+        {
+          "random": 13.2,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 13.2,
+          "personalRegression": 13.2
+        },
+        {
+          "random": 11.6,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 58.8,
+          "personalRegression": 11.6
+        },
+        {
+          "random": 12.1,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 59.7,
+          "personalRegression": 82.3
+        },
+        {
+          "random": 11.5,
+          "fixedCueRule": 100,
+          "previousTimeRule": 60.7,
+          "personalRegression": 92.2
+        },
+        {
+          "random": 12,
+          "fixedCueRule": 99.9,
+          "previousTimeRule": 57.9,
+          "personalRegression": 95.8
+        },
+        {
+          "random": 11.9,
+          "fixedCueRule": 0,
+          "previousTimeRule": 1.4,
+          "personalRegression": 0
+        },
+        {
+          "random": 11.3,
+          "fixedCueRule": 0,
+          "previousTimeRule": 60.5,
+          "personalRegression": 1.4
+        },
+        {
+          "random": 11.9,
+          "fixedCueRule": 0,
+          "previousTimeRule": 62.5,
+          "personalRegression": 3.7
+        },
+        {
+          "random": 14,
+          "fixedCueRule": 0,
+          "previousTimeRule": 58.1,
+          "personalRegression": 6
+        },
+        {
+          "random": 11.4,
+          "fixedCueRule": 0,
+          "previousTimeRule": 58.4,
+          "personalRegression": 14.4
+        }
+      ]
+    },
+    {
+      "strategy": "uniform",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 1207,
+        "fixedCueRule": 1229,
+        "previousTimeRule": 1198,
+        "personalRegression": 1167
+      },
+      "hitRatePercent": {
+        "random": 12.07,
+        "fixedCueRule": 12.29,
+        "previousTimeRule": 11.98,
+        "personalRegression": 11.67
+      },
+      "byRoundPercent": [
+        {
+          "random": 11.3,
+          "fixedCueRule": 13.5,
+          "previousTimeRule": 11.3,
+          "personalRegression": 11.3
+        },
+        {
+          "random": 11.5,
+          "fixedCueRule": 10.9,
+          "previousTimeRule": 12.7,
+          "personalRegression": 11.5
+        },
+        {
+          "random": 13.6,
+          "fixedCueRule": 12.1,
+          "previousTimeRule": 11.4,
+          "personalRegression": 12.3
+        },
+        {
+          "random": 13.2,
+          "fixedCueRule": 12.8,
+          "previousTimeRule": 13,
+          "personalRegression": 11
+        },
+        {
+          "random": 12,
+          "fixedCueRule": 12.2,
+          "previousTimeRule": 12.1,
+          "personalRegression": 11.4
+        },
+        {
+          "random": 10.9,
+          "fixedCueRule": 12.8,
+          "previousTimeRule": 11.8,
+          "personalRegression": 10.8
+        },
+        {
+          "random": 12.7,
+          "fixedCueRule": 12.8,
+          "previousTimeRule": 12.5,
+          "personalRegression": 12.2
+        },
+        {
+          "random": 12.5,
+          "fixedCueRule": 12.2,
+          "previousTimeRule": 11.3,
+          "personalRegression": 12
+        },
+        {
+          "random": 10.3,
+          "fixedCueRule": 12.1,
+          "previousTimeRule": 11.6,
+          "personalRegression": 12.4
+        },
+        {
+          "random": 12.7,
+          "fixedCueRule": 11.5,
+          "previousTimeRule": 12.1,
+          "personalRegression": 11.8
+        }
+      ]
+    },
+    {
+      "strategy": "edge",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 743,
+        "fixedCueRule": 0,
+        "previousTimeRule": 9071,
+        "personalRegression": 8135
+      },
+      "hitRatePercent": {
+        "random": 7.43,
+        "fixedCueRule": 0,
+        "previousTimeRule": 90.71,
+        "personalRegression": 81.35
+      },
+      "byRoundPercent": [
+        {
+          "random": 7.1,
+          "fixedCueRule": 0,
+          "previousTimeRule": 7.1,
+          "personalRegression": 7.1
+        },
+        {
+          "random": 6.4,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 6.4
+        },
+        {
+          "random": 6.7,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 7.5,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 8.1,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 7.6,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 7.8,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 8.5,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 6.4,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        },
+        {
+          "random": 8.2,
+          "fixedCueRule": 0,
+          "previousTimeRule": 100,
+          "personalRegression": 100
+        }
+      ]
+    },
+    {
+      "strategy": "late",
+      "sessions": 1000,
+      "rounds": 10000,
+      "hits": {
+        "random": 1191,
+        "fixedCueRule": 0,
+        "previousTimeRule": 5478,
+        "personalRegression": 7907
+      },
+      "hitRatePercent": {
+        "random": 11.91,
+        "fixedCueRule": 0,
+        "previousTimeRule": 54.78,
+        "personalRegression": 79.07
+      },
+      "byRoundPercent": [
+        {
+          "random": 12.2,
+          "fixedCueRule": 0,
+          "previousTimeRule": 12.2,
+          "personalRegression": 12.2
+        },
+        {
+          "random": 11.8,
+          "fixedCueRule": 0,
+          "previousTimeRule": 58.8,
+          "personalRegression": 11.8
+        },
+        {
+          "random": 13.2,
+          "fixedCueRule": 0,
+          "previousTimeRule": 59.7,
+          "personalRegression": 83.2
+        },
+        {
+          "random": 10.4,
+          "fixedCueRule": 0,
+          "previousTimeRule": 60.7,
+          "personalRegression": 91.5
+        },
+        {
+          "random": 11,
+          "fixedCueRule": 0,
+          "previousTimeRule": 57.9,
+          "personalRegression": 95.8
+        },
+        {
+          "random": 11.9,
+          "fixedCueRule": 0,
+          "previousTimeRule": 59,
+          "personalRegression": 98.6
+        },
+        {
+          "random": 11.3,
+          "fixedCueRule": 0,
+          "previousTimeRule": 60.5,
+          "personalRegression": 98.7
+        },
+        {
+          "random": 11.9,
+          "fixedCueRule": 0,
+          "previousTimeRule": 62.5,
+          "personalRegression": 99.1
+        },
+        {
+          "random": 14,
+          "fixedCueRule": 0,
+          "previousTimeRule": 58.1,
+          "personalRegression": 99.9
+        },
+        {
+          "random": 11.4,
+          "fixedCueRule": 0,
+          "previousTimeRule": 58.4,
+          "personalRegression": 99.9
+        }
+      ]
+    }
+  ],
+  "population": [
+    {
+      "prior": "similar",
+      "syntheticPeople": 0,
+      "trainingRows": 0,
+      "testRounds": 5000,
+      "hits": 591,
+      "hitRatePercent": 11.82
+    },
+    {
+      "prior": "similar",
+      "syntheticPeople": 4,
+      "trainingRows": 40,
+      "testRounds": 5000,
+      "hits": 4997,
+      "hitRatePercent": 99.94
+    },
+    {
+      "prior": "similar",
+      "syntheticPeople": 20,
+      "trainingRows": 200,
+      "testRounds": 5000,
+      "hits": 4997,
+      "hitRatePercent": 99.94
+    },
+    {
+      "prior": "similar",
+      "syntheticPeople": 100,
+      "trainingRows": 1000,
+      "testRounds": 5000,
+      "hits": 4997,
+      "hitRatePercent": 99.94
+    },
+    {
+      "prior": "mixed",
+      "syntheticPeople": 0,
+      "trainingRows": 0,
+      "testRounds": 5000,
+      "hits": 591,
+      "hitRatePercent": 11.82
+    },
+    {
+      "prior": "mixed",
+      "syntheticPeople": 4,
+      "trainingRows": 40,
+      "testRounds": 5000,
+      "hits": 527,
+      "hitRatePercent": 10.54
+    },
+    {
+      "prior": "mixed",
+      "syntheticPeople": 20,
+      "trainingRows": 200,
+      "testRounds": 5000,
+      "hits": 210,
+      "hitRatePercent": 4.2
+    },
+    {
+      "prior": "mixed",
+      "syntheticPeople": 100,
+      "trainingRows": 1000,
+      "testRounds": 5000,
+      "hits": 122,
+      "hitRatePercent": 2.44
+    }
+  ],
+  "fullGame": [
+    {
+      "prior": "none",
+      "strategy": "cue",
+      "rounds": 10000,
+      "safe": 1866,
+      "safeRatePercent": 18.66
+    },
+    {
+      "prior": "none",
+      "strategy": "absolute",
+      "rounds": 10000,
+      "safe": 1558,
+      "safeRatePercent": 15.58
+    },
+    {
+      "prior": "none",
+      "strategy": "switch",
+      "rounds": 10000,
+      "safe": 5617,
+      "safeRatePercent": 56.17
+    },
+    {
+      "prior": "none",
+      "strategy": "uniform",
+      "rounds": 10000,
+      "safe": 5884,
+      "safeRatePercent": 58.84
+    },
+    {
+      "prior": "none",
+      "strategy": "edge",
+      "rounds": 10000,
+      "safe": 1697,
+      "safeRatePercent": 16.97
+    },
+    {
+      "prior": "none",
+      "strategy": "observeAll",
+      "rounds": 10000,
+      "safe": 6334,
+      "safeRatePercent": 63.34
+    },
+    {
+      "prior": "similar",
+      "strategy": "cue",
+      "rounds": 10000,
+      "safe": 0,
+      "safeRatePercent": 0
+    },
+    {
+      "prior": "similar",
+      "strategy": "absolute",
+      "rounds": 10000,
+      "safe": 1643,
+      "safeRatePercent": 16.43
+    },
+    {
+      "prior": "similar",
+      "strategy": "switch",
+      "rounds": 10000,
+      "safe": 4267,
+      "safeRatePercent": 42.67
+    },
+    {
+      "prior": "similar",
+      "strategy": "uniform",
+      "rounds": 10000,
+      "safe": 5685,
+      "safeRatePercent": 56.85
+    },
+    {
+      "prior": "similar",
+      "strategy": "edge",
+      "rounds": 10000,
+      "safe": 1848,
+      "safeRatePercent": 18.48
+    },
+    {
+      "prior": "similar",
+      "strategy": "observeAll",
+      "rounds": 10000,
+      "safe": 8211,
+      "safeRatePercent": 82.11
+    },
+    {
+      "prior": "mixed",
+      "strategy": "cue",
+      "rounds": 10000,
+      "safe": 1683,
+      "safeRatePercent": 16.83
+    },
+    {
+      "prior": "mixed",
+      "strategy": "absolute",
+      "rounds": 10000,
+      "safe": 340,
+      "safeRatePercent": 3.4
+    },
+    {
+      "prior": "mixed",
+      "strategy": "switch",
+      "rounds": 10000,
+      "safe": 5630,
+      "safeRatePercent": 56.3
+    },
+    {
+      "prior": "mixed",
+      "strategy": "uniform",
+      "rounds": 10000,
+      "safe": 5761,
+      "safeRatePercent": 57.61
+    },
+    {
+      "prior": "mixed",
+      "strategy": "edge",
+      "rounds": 10000,
+      "safe": 1848,
+      "safeRatePercent": 18.48
+    },
+    {
+      "prior": "mixed",
+      "strategy": "observeAll",
+      "rounds": 10000,
+      "safe": 8211,
+      "safeRatePercent": 82.11
+    }
+  ],
+  "example": [
+    {
+      "round": 1,
+      "signalA": 1.444,
+      "player": 2.158,
+      "personalPrediction": 4.26,
+      "personalHistory": 0,
+      "hits": [],
+      "safe": true
+    },
+    {
+      "round": 2,
+      "signalA": 1.461,
+      "player": 1.979,
+      "personalPrediction": 3.514,
+      "personalHistory": 1,
+      "hits": [],
+      "safe": true
+    },
+    {
+      "round": 3,
+      "signalA": 1.49,
+      "player": 1.935,
+      "personalPrediction": 2.07,
+      "personalHistory": 2,
+      "hits": [
+        "개인 예측"
+      ],
+      "safe": false
+    },
+    {
+      "round": 4,
+      "signalA": 1.197,
+      "player": 1.834,
+      "personalPrediction": 2.064,
+      "personalHistory": 3,
+      "hits": [
+        "개인 예측"
+      ],
+      "safe": false
+    },
+    {
+      "round": 5,
+      "signalA": 1.359,
+      "player": 1.929,
+      "personalPrediction": 1.968,
+      "personalHistory": 4,
+      "hits": [
+        "개인 예측"
+      ],
+      "safe": false
+    },
+    {
+      "round": 6,
+      "signalA": 1.592,
+      "player": 3.288,
+      "personalPrediction": 2.031,
+      "personalHistory": 5,
+      "hits": [
+        "신호 B"
+      ],
+      "safe": false
+    },
+    {
+      "round": 7,
+      "signalA": 1.43,
+      "player": 3.067,
+      "personalPrediction": 2.201,
+      "personalHistory": 6,
+      "hits": [],
+      "safe": true
+    },
+    {
+      "round": 8,
+      "signalA": 0.943,
+      "player": 2.505,
+      "personalPrediction": 1.423,
+      "personalHistory": 7,
+      "hits": [],
+      "safe": true
+    },
+    {
+      "round": 9,
+      "signalA": 1.398,
+      "player": 3.017,
+      "personalPrediction": 2.355,
+      "personalHistory": 8,
+      "hits": [
+        "신호 B"
+      ],
+      "safe": false
+    },
+    {
+      "round": 10,
+      "signalA": 1.328,
+      "player": 2.865,
+      "personalPrediction": 2.424,
+      "personalHistory": 8,
+      "hits": [],
+      "safe": true
+    }
+  ]
+}
