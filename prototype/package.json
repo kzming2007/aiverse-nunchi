@@ -1,0 +1,13 @@
+{
+  "name": "aeye-nunchi-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI:VERSE 부스 - AI 눈치게임 프로토타입 (게임 + 서버 + 현황판)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 눈치게임 랭킹</title>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="/board.css">
+</head>
+<body class="board">
+  <div class="stars"></div>
+
+  <header class="topbar">
+    <div>AI:VERSE · <b>Aeye</b> AI 눈치게임</div>
+    <div><span id="count"></span> · <span id="conn" class="conn">연결 중…</span></div>
+  </header>
+
+  <main>
+    <h1 class="board-title">🏆 실시간 랭킹</h1>
+    <p class="board-sub">닉네임을 누르면 10판 기록을 볼 수 있어요</p>
+    <ol id="ranking" class="ranking"></ol>
+  </main>
+
+  <div id="modal" class="overlay hidden">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="플레이 기록">
+      <button id="modal-close" class="modal-close" type="button" aria-label="닫기">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+  <script src="/config.js"></script>
+  <script src="/db.js"></script>
+  <script src="/shared.js"></script>
+  <script src="/board.js"></script>
+</body>
+</html>

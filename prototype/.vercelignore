@@ -1,0 +1,7 @@
+# Vercel에는 public/ 의 화면 파일만 올립니다
+server.js
+package.json
+data
+supabase
+README.md
+.env*

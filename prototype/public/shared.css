@@ -1,0 +1,146 @@
+/* 게임 화면과 현황판이 같이 쓰는 스타일 (AI:VERSE 우주 테마) */
+:root {
+  --bg: #070a1f;
+  --panel: rgba(34, 26, 92, 0.55);
+  --panel-strong: rgba(52, 38, 130, 0.7);
+  --line: rgba(170, 150, 255, 0.25);
+  --text: #eef0ff;
+  --muted: #a9a8d6;
+  --accent: #b98cff;
+  --accent2: #6aa8ff;
+  --good: #5ef2b0;
+  --bad: #ff5c7a;
+  --player: #ffd166;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(ellipse at 15% -10%, #2c1b74 0%, transparent 55%),
+    radial-gradient(ellipse at 95% 110%, #1a2f8f 0%, transparent 50%),
+    var(--bg);
+  font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* 별 배경 */
+.stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.75;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 90px 120px, #fff, transparent),
+    radial-gradient(1px 1px at 150px 60px, #cdbfff, transparent),
+    radial-gradient(1.5px 1.5px at 210px 180px, #fff, transparent),
+    radial-gradient(1px 1px at 60px 200px, #9fc3ff, transparent),
+    radial-gradient(1px 1px at 250px 20px, #fff, transparent),
+    radial-gradient(2px 2px at 280px 240px, #e6dcff, transparent);
+  background-size: 300px 260px;
+}
+
+.topbar, main, .overlay { position: relative; z-index: 1; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(7, 10, 31, 0.55);
+  font-size: 15px;
+  color: var(--muted);
+}
+.topbar b { color: var(--text); }
+
+.conn::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  vertical-align: 1px;
+}
+.conn.ok::before { background: var(--good); box-shadow: 0 0 8px var(--good); }
+.conn.bad { color: var(--bad); }
+.conn.bad::before { background: var(--bad); }
+
+/* 화면 전체를 덮는 창 (닉네임 입력, 게임 종료, 현황판 팝업) */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(5, 6, 20, 0.78);
+  backdrop-filter: blur(4px);
+}
+.overlay.hidden { display: none; }
+
+/* 라운드 타임라인: 0~5초 축 위에 누가 언제 눌렀는지 */
+.tl { padding: 52px 24px 66px; }
+.tl-track {
+  position: relative;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.tl-tick {
+  position: absolute;
+  top: 12px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--muted);
+}
+.tl-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.tl-dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--accent2);
+}
+.tl-mark.is-player .tl-dot { background: var(--player); }
+.tl-mark.is-out .tl-dot { background: var(--bad); }
+.tl-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tl-mark.above .tl-label { bottom: 20px; }
+.tl-mark.above2 .tl-label { bottom: 38px; }
+.tl-mark.below .tl-label { top: 30px; }
+.tl-mark.below2 .tl-label { top: 48px; }
+.tl-mark.edge-l .tl-label { left: -4px; transform: none; }
+.tl-mark.edge-r .tl-label { left: auto; right: -4px; transform: none; }
+.tl-mark.is-player .tl-label { color: var(--player); }
+.tl-mark.is-out .tl-label { color: var(--bad); }
+
+/* 작은 타임라인 (현황판 팝업) */
+.tl.compact { padding: 34px 12px 36px; }
+.tl.compact .tl-tick { display: none; }
+.tl.compact .tl-dot { width: 12px; height: 12px; }
+.tl.compact .tl-label { font-size: 12px; }
+.tl.compact .tl-mark.above .tl-label { bottom: 12px; }
+.tl.compact .tl-mark.above2 .tl-label { bottom: 27px; }
+.tl.compact .tl-mark.below .tl-label { top: 12px; }
+.tl.compact .tl-mark.below2 .tl-label { top: 27px; }

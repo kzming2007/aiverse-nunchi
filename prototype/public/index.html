@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 눈치게임</title>
+  <link rel="stylesheet" href="/shared.css">
+  <link rel="stylesheet" href="/game.css">
+</head>
+<body class="game">
+  <div class="stars"></div>
+
+  <header class="topbar">
+    <div>AI:VERSE · <b>Aeye</b> AI 눈치게임</div>
+    <div><span id="station"></span> · <span id="conn" class="conn">서버 확인 중…</span></div>
+  </header>
+
+  <main>
+    <section class="hud">
+      <div>라운드 <b id="round">-</b></div>
+      <div>점수 <b id="score">0</b></div>
+      <div id="nickname" class="nick"></div>
+    </section>
+
+    <section id="ai-seats" class="ai-seats"></section>
+
+    <section class="center">
+      <div id="big" class="big"></div>
+      <div id="sub" class="sub"></div>
+      <div class="timebar"><div id="timefill"></div></div>
+    </section>
+
+    <section id="player-seat" class="player-row"></section>
+
+    <section id="timeline" class="timeline-box"></section>
+
+    <p class="keyhint"><kbd>Space</kbd> 버튼 누르기</p>
+  </main>
+
+  <div id="entry" class="overlay hidden">
+    <form id="entry-form" class="entry-card" autocomplete="off">
+      <div class="entry-title">닉네임을 입력하세요</div>
+      <input id="entry-name" maxlength="12" spellcheck="false" autocomplete="off" aria-label="닉네임">
+      <div class="entry-hint">실명 대신 닉네임으로 · 최대 12자 · 비워두면 회색 추천 닉네임으로 시작</div>
+      <button type="submit" class="entry-start">Enter ↵ 를 누르면 시작</button>
+    </form>
+  </div>
+
+  <div id="final" class="overlay hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js"></script>
+  <script src="/config.js"></script>
+  <script src="/db.js"></script>
+  <script src="/shared.js"></script>
+  <script src="/game.js"></script>
+</body>
+</html>

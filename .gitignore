@@ -1,0 +1,15 @@
+# 원본 운영계획서(팀원 개인정보 포함)와 행사 포스터 원본은 올리지 않습니다
+*.pdf
+/AIVERSE 신청 포스터/
+
+# 비밀 정보 · 로컬 설정
+.env*
+.vercel/
+.claude/
+
+# 로컬 서버 시절의 기록 파일 (지금은 Supabase 사용)
+prototype/data/
+
+node_modules/
+.DS_Store
+Thumbs.db

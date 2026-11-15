@@ -1,0 +1,217 @@
+/* 게임 화면 */
+.game main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 18px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.hud {
+  display: flex;
+  align-items: baseline;
+  gap: 28px;
+  font-size: 18px;
+  color: var(--muted);
+}
+.hud b { color: var(--text); font-size: 28px; margin-left: 4px; }
+.hud .nick { margin-left: auto; color: var(--player); font-weight: 700; font-size: 20px; }
+
+/* 자리(플레이어/AI) 카드 */
+.ai-seats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.player-row { display: flex; justify-content: center; }
+
+.seat {
+  position: relative;
+  padding: 18px 16px 14px;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  background: var(--panel);
+  text-align: center;
+  transition: transform 0.12s, border-color 0.12s, background 0.12s;
+}
+.seat .avatar { font-size: 46px; line-height: 1.1; }
+.seat .name { margin-top: 6px; font-size: 18px; font-weight: 700; }
+.seat .status { min-height: 1.3em; margin-top: 4px; font-size: 15px; color: var(--muted); }
+.seat .callout {
+  position: absolute;
+  top: -16px;
+  right: -10px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #160e40;
+  font-size: 26px;
+  font-weight: 900;
+  opacity: 0;
+  transform: scale(0.4);
+}
+.seat.pressed {
+  border-color: var(--accent);
+  background: var(--panel-strong);
+  transform: translateY(-4px);
+}
+.seat.pressed .callout {
+  opacity: 1;
+  transform: scale(1);
+  transition: 0.18s cubic-bezier(0.3, 1.6, 0.6, 1);
+}
+.seat.safe { border-color: var(--good); }
+.seat.safe .status { color: var(--good); font-weight: 700; }
+.seat.out { border-color: var(--bad); background: rgba(255, 70, 110, 0.18); }
+.seat.out .status { color: var(--bad); font-weight: 700; }
+.seat.out .callout { background: var(--bad); color: #fff; }
+
+.seat.player { width: min(380px, 100%); border-color: rgba(255, 209, 102, 0.55); }
+.seat.player .name { color: var(--player); }
+.seat.player .avatar { font-size: 56px; }
+
+/* 가운데 큰 글씨 + 시간 막대 */
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 190px;
+  text-align: center;
+}
+.big {
+  font-size: 92px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1.05;
+  text-shadow: 0 0 30px rgba(185, 140, 255, 0.6);
+}
+.big.title { font-size: 72px; }
+.big.good { color: var(--good); text-shadow: 0 0 30px rgba(94, 242, 176, 0.5); }
+.big.bad { color: var(--bad); text-shadow: 0 0 30px rgba(255, 92, 122, 0.5); }
+.sub { margin-top: 10px; font-size: 21px; color: var(--muted); }
+
+.timebar {
+  width: 100%;
+  height: 10px;
+  margin-top: 18px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+.timebar > div {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+}
+
+.timeline-box {
+  min-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(7, 10, 31, 0.45);
+}
+
+.rules {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 24px;
+  padding: 22px 26px;
+  font-size: 17px;
+}
+
+.keyhint { margin: 0; text-align: center; color: var(--muted); font-size: 15px; }
+kbd {
+  padding: 2px 10px;
+  border: 1px solid var(--line);
+  border-bottom-width: 3px;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+}
+
+/* 닉네임 입력 화면 */
+.entry-card {
+  width: min(640px, 100%);
+  padding: 36px 32px 28px;
+  border: 2px solid var(--accent);
+  border-radius: 24px;
+  background: rgba(30, 22, 84, 0.95);
+  text-align: center;
+  box-shadow: 0 0 60px rgba(185, 140, 255, 0.35);
+}
+.entry-title { margin-bottom: 20px; font-size: 40px; font-weight: 900; }
+#entry-name {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  outline: none;
+  background: rgba(7, 10, 31, 0.7);
+  color: var(--text);
+  font: inherit;
+  font-size: 38px;
+  font-weight: 800;
+  text-align: center;
+}
+#entry-name:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(185, 140, 255, 0.25); }
+#entry-name::placeholder { color: rgba(169, 168, 214, 0.5); }
+.entry-hint { margin-top: 12px; font-size: 15px; color: var(--muted); }
+.entry-start {
+  margin-top: 22px;
+  padding: 12px 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #160e40;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* 게임 종료 화면 */
+.final-card {
+  width: min(760px, 100%);
+  padding: 32px;
+  border: 2px solid var(--accent);
+  border-radius: 24px;
+  background: rgba(30, 22, 84, 0.95);
+  text-align: center;
+  box-shadow: 0 0 60px rgba(185, 140, 255, 0.35);
+}
+.final-title { font-size: 22px; color: var(--muted); }
+.final-nick { margin-top: 6px; font-size: 28px; font-weight: 800; color: var(--player); }
+.final-score { margin: 10px 0 4px; font-size: 96px; font-weight: 900; line-height: 1; }
+.final-score span { font-size: 32px; margin-left: 6px; color: var(--muted); }
+.final-meta { font-size: 18px; color: var(--muted); }
+.final-meta b { color: var(--text); }
+.final-rounds {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 22px 0;
+}
+.final-rounds div {
+  width: calc(20% - 8px);
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.final-rounds .ok { border-color: var(--good); }
+.final-rounds .ko { border-color: var(--bad); color: var(--bad); }
+.final-hint { font-size: 20px; color: var(--accent); font-weight: 700; }
+
+@media (max-width: 700px) {
+  .ai-seats { gap: 8px; }
+  .seat .avatar { font-size: 34px; }
+  .big { font-size: 60px; }
+  .big.title { font-size: 44px; }
+  .final-rounds div { width: calc(33% - 8px); }
+  .rules { grid-template-columns: 1fr; }
+}
