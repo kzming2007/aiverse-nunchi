@@ -31,6 +31,7 @@
     "probeTarget": 0.4,
     "reprobeBelow": 0.2,
     "reprobeRandomMax": 0.5,
+    "reprobeOnSwitch": false,
     "targetFrom": 0.5,
     "targetTo": 0.75,
     "pickTop": 25,
@@ -38,12 +39,15 @@
     "lureProb": 0.25
   },
   "model": {
-    "version": "default-2026-11-19",
+    "version": "default-2026-11-19-switch",
     "roundMs": 5000,
     "lapse": 0.05,
     "decay": 0.7,
     "floor": 0.03,
     "drift": 100,
+    "switchWindow": 2,
+    "switchMargin": 2,
+    "switchMinRounds": 4,
     "hitToleranceMs": 250,
     "types": {
       "instant": {
@@ -95,22 +99,24 @@
         "r6": 1,
         "r8": 1,
         "r10": 1
-      }
+      },
+      "falseSwitch": 0
     },
     "fixed": {
       "label": "공격형",
       "survivalProbe": 0.6777777777777778,
       "survivalAttack": 0.3238095238095238,
-      "pCatchAttack": 0.5936110653650303,
-      "scorePerGame": 630.98,
-      "readAttack": 0.4129057280353353,
+      "pCatchAttack": 0.593886375772605,
+      "scorePerGame": 631.1733333333333,
+      "readAttack": 0.41287072560952387,
       "accuracy": {
         "r3": 0.7466666666666667,
         "r4": 0.84,
         "r6": 0.8533333333333334,
         "r8": 0.9066666666666666,
         "r10": 0.8866666666666667
-      }
+      },
+      "falseSwitch": 0.006666666666666667
     },
     "follow": {
       "label": "눈치형",
@@ -125,7 +131,8 @@
         "r6": 1,
         "r8": 1,
         "r10": 1
-      }
+      },
+      "falseSwitch": 0
     },
     "hold": {
       "label": "버티기형",
@@ -140,22 +147,24 @@
         "r6": 1,
         "r8": 1,
         "r10": 1
-      }
+      },
+      "falseSwitch": 0
     },
     "random": {
       "label": "랜덤형",
       "survivalProbe": 0.5111111111111111,
-      "survivalAttack": 0.47714285714285715,
-      "pCatchAttack": 0.5401731286520308,
-      "scorePerGame": 723.7866666666666,
-      "readAttack": 0.10652274395792158,
+      "survivalAttack": 0.47523809523809524,
+      "pCatchAttack": 0.5409264971122646,
+      "scorePerGame": 722.3333333333334,
+      "readAttack": 0.10866997726640913,
       "accuracy": {
         "r3": 0.6533333333333333,
         "r4": 0.7133333333333334,
-        "r6": 0.86,
+        "r6": 0.8533333333333334,
         "r8": 0.88,
         "r10": 0.8066666666666666
-      }
+      },
+      "falseSwitch": 0.04666666666666667
     },
     "masher": {
       "label": "연타",
@@ -170,22 +179,128 @@
         "r6": 1,
         "r8": 1,
         "r10": 1
-      }
+      },
+      "falseSwitch": 0
+    },
+    "sloppy": {
+      "label": "눈치형+실수15%",
+      "survivalProbe": 0.7977777777777778,
+      "survivalAttack": 0.42857142857142855,
+      "pCatchAttack": 0.5862314974346298,
+      "scorePerGame": 789.12,
+      "readAttack": 0.5278967735505234,
+      "accuracy": {
+        "r3": 0.8333333333333334,
+        "r4": 0.7733333333333333,
+        "r6": 0.84,
+        "r8": 0.8733333333333333,
+        "r10": 0.8333333333333334
+      },
+      "falseSwitch": 0.14666666666666667
     },
     "switcher": {
-      "label": "전략 변경",
+      "label": "눈치→공격 (6판)",
       "survivalProbe": 0.8355555555555556,
-      "survivalAttack": 0.5238095238095238,
-      "pCatchAttack": 0.5389138032581935,
-      "scorePerGame": 892.72,
-      "readAttack": 0.37984659069699866,
+      "survivalAttack": 0.49523809523809526,
+      "pCatchAttack": 0.5562927459031402,
+      "scorePerGame": 867.3066666666666,
+      "readAttack": 0.40544838460202015,
       "accuracy": {
         "r3": 1,
         "r4": 1,
         "r6": 0.28,
-        "r8": 0.46,
-        "r10": 0.6
-      }
+        "r8": 0.7066666666666667,
+        "r10": 0.7666666666666667
+      },
+      "switchAt": 6,
+      "afterSwitch": [
+        0.28,
+        0.58,
+        0.7066666666666667,
+        0.7466666666666667
+      ],
+      "detected": 0.6266666666666667,
+      "detectDelay": 2.234042553191489,
+      "falseBefore": 0,
+      "survivalAfter": 0.496
+    },
+    "fixedToFollow": {
+      "label": "공격→눈치 (6판)",
+      "survivalProbe": 0.6355555555555555,
+      "survivalAttack": 0.41619047619047617,
+      "pCatchAttack": 0.5981119501741252,
+      "scorePerGame": 717.76,
+      "readAttack": 0.4705832965630659,
+      "accuracy": {
+        "r3": 0.7933333333333333,
+        "r4": 0.84,
+        "r6": 0.24666666666666667,
+        "r8": 0.8266666666666667,
+        "r10": 0.98
+      },
+      "switchAt": 6,
+      "afterSwitch": [
+        0.24666666666666667,
+        0.5666666666666667,
+        0.8266666666666667,
+        0.9066666666666666
+      ],
+      "detected": 0.23333333333333334,
+      "detectDelay": 1.9428571428571428,
+      "falseBefore": 0,
+      "survivalAfter": 0.39866666666666667
+    },
+    "followToInstant": {
+      "label": "눈치→즉시 (5판)",
+      "survivalProbe": 0.8288888888888889,
+      "survivalAttack": 0.43047619047619046,
+      "pCatchAttack": 0.5665710898655151,
+      "scorePerGame": 770.2333333333333,
+      "readAttack": 0.6492727359990489,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 0.98,
+        "r8": 1,
+        "r10": 1
+      },
+      "switchAt": 5,
+      "afterSwitch": [
+        0.9533333333333334,
+        0.98,
+        1,
+        1
+      ],
+      "detected": 0.9733333333333334,
+      "detectDelay": 2.006849315068493,
+      "falseBefore": 0,
+      "survivalAfter": 0.4266666666666667
+    },
+    "instantToHold": {
+      "label": "즉시→버티기 (7판)",
+      "survivalProbe": 1,
+      "survivalAttack": 0.37047619047619046,
+      "pCatchAttack": 0.5875872589516403,
+      "scorePerGame": 757.3133333333334,
+      "readAttack": 0.5898236714890186,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 1,
+        "r10": 1
+      },
+      "switchAt": 7,
+      "afterSwitch": [
+        0.8066666666666666,
+        1,
+        1,
+        1
+      ],
+      "detected": 1,
+      "detectDelay": 2,
+      "falseBefore": 0,
+      "survivalAfter": 0.45
     }
   }
 }

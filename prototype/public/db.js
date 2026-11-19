@@ -25,7 +25,8 @@ const DB = (() => {
   });
 
   return {
-    // ── 게임 화면에서 쓰는 것 (v2: 수집 모드, AI 기록, 새 점수) ──
+    // ── 게임 화면에서 쓰는 것 (v2: 수집·연습 모드, AI 기록, 새 점수) ──
+    // mode: 'play' 랭킹 / 'test' 연습(판 수를 바꾼 게임) / 'collect' 수집. 랭킹에는 10판 일반 게임만 올라감 (DB가 확인)
     startGame: ({ gameId, nickname, station, totalRounds, mode = 'play', label = null, ruleVersion = null }) =>
       rpc('nunchi_start_game_v2', {
         p_game_id: gameId,

@@ -164,6 +164,39 @@ kbd {
 .role-guard { background: var(--accent2); }
 .role-block { background: var(--muted); }
 .ai-legend { width: 100%; font-size: 13px; color: var(--muted); }
+/* 수집 모드: 연타 경고 (가운데 잠깐 / 판 결과) */
+.warn {
+  min-height: 26px;
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--player);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.warn.show { opacity: 1; }
+.ai-warn {
+  padding: 6px 12px;
+  border: 1px solid var(--bad);
+  border-radius: 12px;
+  background: rgba(255, 92, 122, 0.12);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--bad);
+}
+.ai-warn small { font-weight: 400; color: var(--muted); }
+
+/* 전략 변경을 알아챈 판에만 나오는 안내 */
+.ai-switch {
+  padding: 6px 12px;
+  border: 1px solid var(--player);
+  border-radius: 12px;
+  background: rgba(255, 209, 102, 0.12);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--player);
+}
+.ai-switch small { font-weight: 400; color: var(--muted); }
 
 .ai-bars { display: flex; flex-direction: column; gap: 5px; }
 .ai-bars-title { font-size: 13px; color: var(--muted); }
@@ -272,6 +305,17 @@ kbd {
 .final-style-text { margin: 6px 0; font-size: 19px; }
 .final-read { margin-bottom: 10px; font-size: 16px; color: var(--muted); }
 .final-read b, .final-style-head b { color: var(--text); }
+.final-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--muted);
+}
+.final-legend b { margin-right: 6px; color: var(--text); }
 .final-rounds .ok { border-color: var(--good); }
 .final-rounds .ko { border-color: var(--bad); color: var(--bad); }
 .final-hint { font-size: 20px; color: var(--accent); font-weight: 700; }

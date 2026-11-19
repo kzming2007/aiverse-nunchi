@@ -342,3 +342,91 @@ revoke execute on function public.nunchi_start_game_v2(text, text, text, int, te
 revoke execute on function public.nunchi_record_round_v2(text, int, numeric, boolean, text, jsonb, int, jsonb) from public;
 grant execute on function public.nunchi_start_game_v2(text, text, text, int, text, text, text) to anon, authenticated;
 grant execute on function public.nunchi_record_round_v2(text, int, numeric, boolean, text, jsonb, int, jsonb) to anon, authenticated;
+
+
+
+-- ════════════════════════════════════════════════════════════════
+-- v3 (2026-11-19): 랭킹 보호 (구조 검토 피드백 P0)
+--   랭킹은 누구나(부스 노트북, 휴대폰 QR 참여) 할 수 있습니다. 대신
+--   1) 랭킹에는 10판 일반 게임만 올라갑니다. 판 수를 바꾼 게임은 연습 게임(test)으로 저장됩니다.
+--   2) 사람이 할 수 없을 만큼 빨리(45초 미만) 끝난 10판 게임은 자동으로 숨깁니다 (함수를 직접 연달아 부르는 조작 방지).
+--   3) 이상한 기록은 운영자가 hidden = true 로 바로 랭킹에서 숨길 수 있습니다.
+--   4) 예전 점수 방식(v1) 함수는 더 이상 부를 수 없습니다.
+-- 한계: AI 계산과 판정이 브라우저에서 이루어지므로, 시간을 맞춰 기록을 꾸며 보내는 것까지 막지는 못합니다.
+-- (11/19 한때 '부스 키가 있는 기기만 랭킹' 방식을 적용했다가, QR 휴대폰 참여와 맞지 않아 되돌림)
+-- ════════════════════════════════════════════════════════════════
+
+alter table public.nunchi_games drop constraint nunchi_games_mode_check;
+alter table public.nunchi_games
+  add constraint nunchi_games_mode_check check (mode in ('play', 'collect', 'test')), -- test = 연습 (랭킹 제외)
+  add column hidden boolean not null default false; -- true면 랭킹에서 숨김
+
+-- 랭킹: 10판 일반 게임만, 숨긴 기록 제외
+create or replace view public.nunchi_ranking with (security_invoker = true) as
+select
+  rank() over (order by g.total_score desc) as rank,
+  g.id as game_id,
+  g.nickname,
+  g.total_score,
+  g.survived_rounds,
+  g.total_rounds,
+  g.finished_at
+from public.nunchi_games g
+where g.finished_at is not null and g.mode = 'play' and g.total_rounds = 10 and not g.hidden;
+
+-- 게임 종료: 순위는 랭킹 게임끼리만 비교. 연습·수집·숨긴 게임은 0을 돌려줌
+create or replace function public.nunchi_finish_game(p_game_id text)
+returns int
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_finished timestamptz;
+  v_started timestamptz;
+  v_total int;
+  v_survived int;
+  v_mode text;
+  v_rounds int;
+  v_hidden boolean;
+begin
+  select finished_at, started_at, total_score, mode, total_rounds, hidden
+    into v_finished, v_started, v_total, v_mode, v_rounds, v_hidden
+  from public.nunchi_games
+  where id = p_game_id;
+
+  if not found then
+    raise exception 'game % not found', p_game_id;
+  end if;
+
+  if v_finished is null then
+    select coalesce(sum(score), 0)::int, (count(*) filter (where survived))::int
+      into v_total, v_survived
+    from public.nunchi_rounds
+    where game_id = p_game_id;
+
+    -- 10판은 카운트다운·결과 화면만 합쳐도 1분이 넘게 걸림. 45초 안에 끝났으면 사람이 한 게임이 아니라고 보고 숨김
+    if v_mode = 'play' and v_rounds = 10 and now() - v_started < interval '45 seconds' then
+      v_hidden := true;
+    end if;
+
+    update public.nunchi_games
+       set finished_at = now(), total_score = v_total, survived_rounds = v_survived, hidden = v_hidden
+     where id = p_game_id;
+  end if;
+
+  if v_mode <> 'play' or v_rounds <> 10 or v_hidden then
+    return 0;
+  end if;
+
+  return (
+    select count(*) + 1
+    from public.nunchi_games
+    where finished_at is not null and mode = 'play' and total_rounds = 10 and not hidden and total_score > v_total
+  )::int;
+end;
+$$;
+
+-- 예전 점수 방식(v1) 함수 막기 (지금 화면은 v2만 씀)
+revoke execute on function public.nunchi_start_game(text, text, text, int) from anon, authenticated;
+revoke execute on function public.nunchi_record_round(text, int, numeric, boolean, text, jsonb) from anon, authenticated;

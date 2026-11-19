@@ -1,0 +1,306 @@
+{
+  "games": 150,
+  "rounds": 10,
+  "seed": 1,
+  "planner": {
+    "roundMs": 5000,
+    "windowMs": 150,
+    "aiMinMs": 100,
+    "aiMaxMs": 4700,
+    "gridMs": 100,
+    "minGapMs": 180,
+    "lateMinMs": 3000,
+    "minSafeMs": 1000,
+    "totalRounds": 10,
+    "probeRounds": 3,
+    "probeA1": [
+      [
+        600,
+        900
+      ],
+      [
+        1800,
+        2200
+      ],
+      [
+        1100,
+        1400
+      ]
+    ],
+    "probeGapMs": 700,
+    "probeTarget": 0.4,
+    "reprobeBelow": 0.2,
+    "reprobeRandomMax": 0.5,
+    "reprobeOnSwitch": true,
+    "targetFrom": 0.5,
+    "targetTo": 0.75,
+    "pickTop": 25,
+    "ambushMass": 0.12,
+    "lureProb": 0.25
+  },
+  "model": {
+    "version": "default-2026-11-19-switch",
+    "roundMs": 5000,
+    "lapse": 0.05,
+    "decay": 0.7,
+    "floor": 0.03,
+    "drift": 100,
+    "switchWindow": 0,
+    "switchMargin": 2,
+    "switchMinRounds": 4,
+    "hitToleranceMs": 250,
+    "types": {
+      "instant": {
+        "prior": {
+          "mean": 220,
+          "sd": 80
+        },
+        "noise": 80,
+        "meanRange": [
+          50,
+          600
+        ]
+      },
+      "fixed": {
+        "prior": {
+          "mean": 1600,
+          "sd": 900
+        },
+        "noise": 220
+      },
+      "follow": {
+        "prior": {
+          "mean": 450,
+          "sd": 150
+        },
+        "noise": 110
+      },
+      "hold": {
+        "prior": {
+          "mean": 450,
+          "sd": 150
+        },
+        "noise": 130
+      }
+    }
+  },
+  "synthetic": true,
+  "results": {
+    "instant": {
+      "label": "즉시형",
+      "survivalProbe": 0.9977777777777778,
+      "survivalAttack": 0.21619047619047618,
+      "pCatchAttack": 0.6271534445438992,
+      "scorePerGame": 588.8266666666667,
+      "readAttack": 0.8130589978834355,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 1,
+        "r10": 1
+      },
+      "falseSwitch": 0
+    },
+    "fixed": {
+      "label": "공격형",
+      "survivalProbe": 0.6777777777777778,
+      "survivalAttack": 0.3238095238095238,
+      "pCatchAttack": 0.5936110653650303,
+      "scorePerGame": 630.98,
+      "readAttack": 0.4129057280353353,
+      "accuracy": {
+        "r3": 0.7466666666666667,
+        "r4": 0.84,
+        "r6": 0.8533333333333334,
+        "r8": 0.9066666666666666,
+        "r10": 0.8866666666666667
+      },
+      "falseSwitch": 0
+    },
+    "follow": {
+      "label": "눈치형",
+      "survivalProbe": 0.8377777777777777,
+      "survivalAttack": 0.32476190476190475,
+      "pCatchAttack": 0.6234634803773953,
+      "scorePerGame": 703.1066666666667,
+      "readAttack": 0.693204836606296,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 1,
+        "r10": 1
+      },
+      "falseSwitch": 0
+    },
+    "hold": {
+      "label": "버티기형",
+      "survivalProbe": 0.47555555555555556,
+      "survivalAttack": 0.38,
+      "pCatchAttack": 0.6206607063166246,
+      "scorePerGame": 619.0133333333333,
+      "readAttack": 0.6647260689499155,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 1,
+        "r10": 1
+      },
+      "falseSwitch": 0
+    },
+    "random": {
+      "label": "랜덤형",
+      "survivalProbe": 0.5111111111111111,
+      "survivalAttack": 0.47714285714285715,
+      "pCatchAttack": 0.5401731286520308,
+      "scorePerGame": 723.7866666666666,
+      "readAttack": 0.10652274395792158,
+      "accuracy": {
+        "r3": 0.6533333333333333,
+        "r4": 0.7133333333333334,
+        "r6": 0.86,
+        "r8": 0.88,
+        "r10": 0.8066666666666666
+      },
+      "falseSwitch": 0
+    },
+    "masher": {
+      "label": "연타",
+      "survivalProbe": 1,
+      "survivalAttack": 0.08666666666666667,
+      "pCatchAttack": 0.6265059035306474,
+      "scorePerGame": 443.91333333333336,
+      "readAttack": 0.8813316123109437,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 1,
+        "r10": 1
+      },
+      "falseSwitch": 0
+    },
+    "sloppy": {
+      "label": "눈치형+실수15%",
+      "survivalProbe": 0.7977777777777778,
+      "survivalAttack": 0.4266666666666667,
+      "pCatchAttack": 0.58491477883592,
+      "scorePerGame": 786.64,
+      "readAttack": 0.5215419839788854,
+      "accuracy": {
+        "r3": 0.8333333333333334,
+        "r4": 0.7733333333333333,
+        "r6": 0.8266666666666667,
+        "r8": 0.8466666666666667,
+        "r10": 0.8066666666666666
+      },
+      "falseSwitch": 0
+    },
+    "switcher": {
+      "label": "눈치→공격 (6판)",
+      "survivalProbe": 0.8355555555555556,
+      "survivalAttack": 0.5238095238095238,
+      "pCatchAttack": 0.5389138032581935,
+      "scorePerGame": 892.72,
+      "readAttack": 0.37984659069699866,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 0.28,
+        "r8": 0.46,
+        "r10": 0.6
+      },
+      "switchAt": 6,
+      "afterSwitch": [
+        0.28,
+        0.35333333333333333,
+        0.46,
+        0.5466666666666666
+      ],
+      "detected": 0,
+      "detectDelay": null,
+      "falseBefore": 0,
+      "survivalAfter": 0.536
+    },
+    "fixedToFollow": {
+      "label": "공격→눈치 (6판)",
+      "survivalProbe": 0.6355555555555555,
+      "survivalAttack": 0.41714285714285715,
+      "pCatchAttack": 0.5943429513299013,
+      "scorePerGame": 716.6466666666666,
+      "readAttack": 0.4657517257050616,
+      "accuracy": {
+        "r3": 0.7933333333333333,
+        "r4": 0.84,
+        "r6": 0.24666666666666667,
+        "r8": 0.8266666666666667,
+        "r10": 0.98
+      },
+      "switchAt": 6,
+      "afterSwitch": [
+        0.24666666666666667,
+        0.56,
+        0.8266666666666667,
+        0.9066666666666666
+      ],
+      "detected": 0,
+      "detectDelay": null,
+      "falseBefore": 0,
+      "survivalAfter": 0.4
+    },
+    "followToInstant": {
+      "label": "눈치→즉시 (5판)",
+      "survivalProbe": 0.8288888888888889,
+      "survivalAttack": 0.4228571428571429,
+      "pCatchAttack": 0.566769996489079,
+      "scorePerGame": 761.2666666666667,
+      "readAttack": 0.650325678305252,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 0.98,
+        "r8": 1,
+        "r10": 1
+      },
+      "switchAt": 5,
+      "afterSwitch": [
+        0.9533333333333334,
+        0.98,
+        1,
+        1
+      ],
+      "detected": 0,
+      "detectDelay": null,
+      "falseBefore": 0,
+      "survivalAfter": 0.4177777777777778
+    },
+    "instantToHold": {
+      "label": "즉시→버티기 (7판)",
+      "survivalProbe": 1,
+      "survivalAttack": 0.379047619047619,
+      "pCatchAttack": 0.5807149860647544,
+      "scorePerGame": 763.6933333333334,
+      "readAttack": 0.5835888007383839,
+      "accuracy": {
+        "r3": 1,
+        "r4": 1,
+        "r6": 1,
+        "r8": 0.9933333333333333,
+        "r10": 1
+      },
+      "switchAt": 7,
+      "afterSwitch": [
+        0.8066666666666666,
+        0.9933333333333333,
+        1,
+        1
+      ],
+      "detected": 0,
+      "detectDelay": null,
+      "falseBefore": 0,
+      "survivalAfter": 0.465
+    }
+  }
+}

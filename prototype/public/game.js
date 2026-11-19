@@ -15,11 +15,10 @@ const clampInt = (v, min, max, fallback) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 };
 
-// ?mode=collect 로 들어오면 데이터 수집 모드: AI는 무작위로 누르고, 기록에 연기한 유형이 붙고, 랭킹에는 안 올라감
-const MODE = params.get('mode') === 'collect' ? 'collect' : 'play';
+const RANKED_ROUNDS = 10; // 랭킹에 올라가는 게임의 판 수 (DB도 같은 규칙으로 다시 확인)
 
 const CONFIG = {
-  totalRounds: clampInt(params.get('rounds'), 1, 30, 10), // ?rounds=3 처럼 주소에 붙이면 짧게 테스트
+  totalRounds: clampInt(params.get('rounds'), 1, 30, RANKED_ROUNDS), // ?rounds=3 처럼 붙이면 짧게 테스트 (연습 게임으로 저장)
   roundMs: 5000, // 한 판 제한 시간
   collisionMs: 150, // 이 간격 안에 2명 이상 누르면 모두 탈락 (동시 입력). 11/19 0.3초 → 0.15초
   aiMinMs: 100, // AI가 누를 수 있는 가장 이른 시각. 11/19 0.3초 → 0.1초
@@ -30,6 +29,14 @@ const CONFIG = {
   keys: ['Space', 'Enter', 'NumpadEnter'], // 스페이스바 (+ 예비 대형 엔터키)
   ruleVersion: 'r2-w150-min100',
 };
+
+// 게임 종류 (랭킹은 누구나: 부스 노트북이든 휴대폰 QR 참여든 10판 일반 게임이면 올라감)
+//   play:    랭킹 게임 (10판)
+//   test:    연습 게임. ?rounds= 로 판 수를 바꾼 경우. AI는 똑같이 플레이하고 랭킹만 제외
+//   collect: ?mode=collect 데이터 수집 모드. AI는 무작위로 누르고, 기록에 연기한 유형이 붙고, 랭킹 제외
+const MODE = params.get('mode') === 'collect' ? 'collect' : CONFIG.totalRounds === RANKED_ROUNDS ? 'play' : 'test';
+const TEST_REASON = MODE === 'test' ? `${CONFIG.totalRounds}판 테스트` : '';
+
 const PLAN_OPTIONS = {
   roundMs: CONFIG.roundMs,
   windowMs: CONFIG.collisionMs,
@@ -98,6 +105,16 @@ function showBig(text, sub = '', tone = '') {
   $('big').textContent = text;
   $('big').className = `big ${tone}`;
   $('sub').textContent = sub;
+}
+
+// 화면 가운데 잠깐 뜨는 안내 (수집 모드 연타 경고)
+let warnTimer = null;
+function warn(text, ms = 1600) {
+  const el = $('warn');
+  el.textContent = text;
+  el.classList.add('show');
+  clearTimeout(warnTimer);
+  warnTimer = setTimeout(() => el.classList.remove('show'), ms);
 }
 
 function setTimebar(ratio) {
@@ -191,7 +208,7 @@ $('entry-form').addEventListener('submit', (e) => {
 
 // ───────── 게임 진행 ─────────
 function startGame(nickname, label) {
-  game = { gameId: makeId(), nickname, label, round: 0, rounds: [], totalScore: 0, belief: Model.createBelief() };
+  game = { gameId: makeId(), nickname, label, round: 0, rounds: [], totalScore: 0, belief: Model.createBelief(), switchRounds: [] };
   $('final').classList.add('hidden');
   const { gameId } = game;
   save(() =>
@@ -280,6 +297,7 @@ function pressDueAgents(upTo) {
 function playerPress(now) {
   if (round.presses.player !== undefined) {
     extraKeys++; // 이미 누른 뒤 또 누름 (연타)
+    if (MODE === 'collect') warn('✋ 한 판에 한 번만! 더 누르면 이 판은 학습에서 빠져요');
     return;
   }
   const time = now - round.start;
@@ -323,6 +341,7 @@ function endRound() {
   const before = game.belief.probs.slice();
   const updated = Model.update(game.belief, plan.times, obs);
   game.belief = updated.belief;
+  if (updated.switched) game.switchRounds.push(game.round); // 최근 2판이 예전 습관과 너무 달라 새로 읽기 시작함
   const hitProb = obs.pressed ? updated.lastHit : null;
   const predictionHit = obs.pressed && plan.predictedMs !== null ? Math.abs(obs.t - plan.predictedMs) <= HIT_TOL : null;
 
@@ -330,7 +349,7 @@ function endRound() {
   const pCatch = plan.pCatch ?? 0;
   const score = me.out ? 0 : Math.round(100 * (1 + pCatch));
   game.totalScore += score;
-  game.rounds.push({ round: game.round, time: me.time, survived: !me.out, reason: me.reason, score, pCatch, phase: plan.phase, hitProb, predictionHit });
+  game.rounds.push({ round: game.round, time: me.time, survived: !me.out, reason: me.reason, score, pCatch, phase: plan.phase, hitProb, predictionHit, extra: extraKeys });
   updateHud();
 
   const band = plan.predictedMs !== null ? { center: plan.predictedMs, half: HIT_TOL } : null;
@@ -345,7 +364,16 @@ function endRound() {
     beep(1046, 0.12);
     setTimeout(() => beep(1318, 0.16), 110);
   }
-  showAiPanel(tacticHtml(plan, round.order) + beliefBarsHtml(game.belief, 'AI의 판단 (이번 판까지 본 너)'));
+  const switchHtml = updated.switched
+    ? '<div class="ai-switch">🔄 전략을 바꿨네? <small>AI가 예전 습관은 버리고, 최근 2판만 보고 너를 다시 읽기 시작했어요</small></div>'
+    : '';
+  // 수집 모드: 연타한 판은 학습에서 빠지므로 바로 알려 줌 (가운데 + 아래 패널)
+  if (MODE === 'collect' && extraKeys > 0) warn(`⚠️ 이번 판은 연타로 학습에서 빠져요 (${extraKeys}번 더 누름)`, CONFIG.resultMs);
+  const mashHtml =
+    MODE === 'collect' && extraKeys > 0
+      ? `<div class="ai-warn">⚠️ 이번 판은 ${extraKeys}번 더 눌러서 학습에서 빠져요 <small>'시작!' 뒤에 한 판에 한 번만 눌러 주세요</small></div>`
+      : '';
+  showAiPanel(mashHtml + switchHtml + tacticHtml(plan, round.order) + beliefBarsHtml(game.belief, 'AI의 판단 (이번 판까지 본 너)'));
 
   const record = {
     gameId: game.gameId,
@@ -367,6 +395,8 @@ function endRound() {
       roles: plan.roles ? Object.fromEntries(round.order.map((id, i) => [id, plan.roles[i]])) : null,
       before: probsObject(before),
       after: probsObject(game.belief.probs),
+      switchDetected: updated.switched, // 전략 변경 감지 (true면 after는 최근 2판만으로 다시 읽은 판단)
+      switchScore: round4(updated.switchScore), // 새 판단이 최근 판을 얼마나 더 잘 맞혔나 (log, 2 넘으면 감지)
       modelVersion: Model.DEFAULT_PARAMS.version,
     },
   };
@@ -392,6 +422,9 @@ async function finishGame() {
     ? `AI는 너의 <b>${esc(style.text)}</b>을 읽었어요`
     : `타이밍이 들쭉날쭉해서 AI가 너를 잘 읽지 못했어요`;
   const labelName = game.label ? COLLECT_LABELS.find((l) => l.id === game.label)?.name : null;
+  const switchText = game.switchRounds.length ? ` · 전략 변경 감지 <b>${game.switchRounds.map((r) => `${r}판`).join(', ')}</b>` : '';
+  const cleanRounds = game.rounds.filter((r) => r.extra === 0).length;
+  const collectText = MODE === 'collect' ? `<br>학습에 쓰이는 판 <b>${cleanRounds}/${game.rounds.length}</b> <small>(연타한 판 제외)</small>` : '';
 
   const chips = game.rounds
     .map(
@@ -403,15 +436,20 @@ async function finishGame() {
     .join('');
 
   $('final').innerHTML = `<div class="final-card">
-    <div class="final-title">게임 끝!${MODE === 'collect' ? ' (데이터 수집 모드)' : ''}</div>
+    <div class="final-title">게임 끝!${MODE === 'collect' ? ' (데이터 수집 모드)' : MODE === 'test' ? ' (연습)' : ''}</div>
     <div class="final-nick">${esc(game.nickname)}</div>
     <div class="final-score">${game.totalScore}<span>점</span></div>
-    <div class="final-meta">생존 <b>${survived}/${game.rounds.length}</b> · <span id="rank">순위 계산 중…</span></div>
+    <div class="final-meta">생존 <b>${survived}/${game.rounds.length}</b> · <span id="rank">순위 계산 중…</span>${collectText}</div>
     <div class="final-style">
       <div class="final-style-head">AI가 추정한 플레이 스타일 <b>${esc(style.name)} ${pct(style.prob)}</b>${labelName ? ` · 연기한 유형 <b>${esc(labelName)}</b>` : ''}</div>
       <div class="final-style-text">${styleSentence}</div>
-      <div class="final-read">AI에게 읽힌 정도 <b>${pct(readPct)}</b> <small>(무작위로 찍으면 ${pct(baseline)})</small> · AI 예측 적중 <b>${hits}/${scored.length}</b>판</div>
+      <div class="final-read">AI에게 읽힌 정도 <b>${pct(readPct)}</b> <small>(무작위로 찍으면 ${pct(baseline)})</small> · AI 예측 적중 <b>${hits}/${scored.length}</b>판${switchText}</div>
       ${beliefBarsHtml(game.belief, '', 3)}
+      <div class="final-legend">
+        <span><b>유형 확률</b> AI가 보는 너의 플레이 스타일</span>
+        <span><b>AI 포획 예상</b> 판 시작 전에 AI가 계산한 '잡을 확률' (점수 보너스)</span>
+        <span><b>읽힌 정도</b> 실제로 누른 시각 근처(±0.25초)에 AI가 걸었던 확률</span>
+      </div>
     </div>
     <div class="final-rounds">${chips}</div>
     <div class="final-hint">스페이스바를 누르면 다음 사람 차례</div>
@@ -423,6 +461,7 @@ async function finishGame() {
   const rankEl = $('rank');
   if (!rankEl) return;
   if (MODE === 'collect') rankEl.textContent = '수집 모드라 랭킹에는 안 올라가요';
+  else if (MODE === 'test') rankEl.textContent = `${TEST_REASON}라 랭킹에는 안 올라가요`;
   else rankEl.innerHTML = rank ? `오늘 <b>${rank}위</b>` : '기록을 저장하지 못했어요';
 }
 
@@ -439,7 +478,10 @@ addEventListener('keydown', (e) => {
   const now = performance.now();
   unlockAudio();
   if (state === 'playing') playerPress(now);
-  else if (state === 'countdown') extraKeys++; // 시작 전에 누름 (연타)
+  else if (state === 'countdown') {
+    extraKeys++; // 시작 전에 누름 (연타)
+    if (MODE === 'collect') warn("⏳ 아직이에요! '시작!' 뒤에 한 번만 눌러 주세요");
+  }
   else if (state === 'final' && now >= acceptRestartAt) showEntry();
 });
 
@@ -528,7 +570,8 @@ const NOUN = ['수달', '고양이', '펭귄', '너구리', '다람쥐', '부엉
 const makeNickname = () => `${pick(ADJ)} ${pick(NOUN)}`; // 입력창에 보여줄 추천 닉네임
 
 // ───────── 시작 ─────────
-$('station').textContent = `스테이션 ${STATION}${MODE === 'collect' ? ' · 데이터 수집 모드' : ''}`;
+$('station').textContent = `스테이션 ${STATION}${MODE === 'collect' ? ' · 데이터 수집 모드' : MODE === 'test' ? ` · 연습 모드 (${TEST_REASON}, 랭킹 미반영)` : ''}`;
+if (MODE === 'test') $('entry-notice').textContent = `연습 모드예요 (${TEST_REASON}). 플레이 기록은 AI 학습에만 쓰이고 랭킹에는 올라가지 않아요`;
 if (MODE === 'collect') {
   $('entry-title').textContent = '데이터 수집 모드';
   $('entry-label').innerHTML = COLLECT_LABELS.map((l) => `<option value="${l.id}">${esc(l.name)}</option>`).join('');

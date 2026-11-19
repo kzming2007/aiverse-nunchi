@@ -25,12 +25,17 @@
   ];
 
   const DEFAULT_PARAMS = {
-    version: 'default-2026-11-19',
+    version: 'default-2026-11-19-switch',
     roundMs: 5000,
     lapse: 0.05, // 어떤 유형이든 가끔 엉뚱하게 누를 확률 (0~5초 균등분포로 섞음)
     decay: 0.7, // 최근 판 가중치: 매 판 이전 판단에 곱하는 값 (작을수록 빨리 잊음). 시뮬레이터로 0.6~0.8 비교 후 선택
-    floor: 0.03, // 어떤 유형도 이 확률 밑으로는 내려가지 않음
+    floor: 0.03, // 매 판 판단에 '고른 분포'를 3%만큼 섞음 → 어떤 유형도 0.6%(= 3% ÷ 5유형) 밑으로는 내려가지 않음
     drift: 100, // 판마다 개인 숫자가 바뀔 수 있는 정도 (ms)
+    // 전략 변경 감지: 최근 switchWindow판을 '처음부터 새로 읽은 판단'이 지금 판단보다 e^switchMargin배 넘게 잘 맞혔으면
+    // 전략을 바꿨다고 보고 새 판단으로 갈아탐. switchWindow: 0이면 끔
+    switchWindow: 2,
+    switchMargin: 2,
+    switchMinRounds: 4, // 이 판 수 이상 본 뒤부터 확인 (그 전에는 비교할 '습관'이 아직 없음)
     hitToleranceMs: 250, // "예측 적중" 기준: AI 예상과 실제 차이가 이 안이면 적중
     types: {
       instant: { prior: { mean: 220, sd: 80 }, noise: 80, meanRange: [50, 600] }, // 즉시형은 정의상 0.6초 안
@@ -75,7 +80,15 @@
       const prior = params.types[type.id].prior;
       personal[type.id] = { mean: prior.mean, sd: prior.sd };
     }
-    return { probs: TYPES.map(() => 1 / n), logw: TYPES.map(() => Math.log(1 / n)), personal, rounds: 0, lastHit: null };
+    return {
+      probs: TYPES.map(() => 1 / n),
+      logw: TYPES.map(() => Math.log(1 / n)),
+      personal,
+      rounds: 0,
+      lastHit: null,
+      history: [], // 최근 판 기록 (전략 변경 감지용): { schedule, obs, ll }
+      switchedAt: null, // 마지막으로 전략 변경을 감지한 판
+    };
   }
 
   // 유형 k라면 이번 작전에서 누를 시각의 분포 (정규분포의 평균, 표준편차)
@@ -141,8 +154,51 @@
     return (1 - params.lapse) * (1 - normCdf((obs.censorAt - g.mean) / g.sd)) + params.lapse * Math.max(0, 1 - obs.censorAt / R);
   }
 
-  // 한 판이 끝난 뒤 판단 갱신 (베이즈 + 최근 판 가중치 + 개인 숫자 갱신)
+  // 판 시작 전 판단으로 봤을 때 이번 입력이 나올 가능성 (log). 눌렀으면 1ms당 확률밀도, 안 눌렀으면 확률
+  function obsLogLik(belief, schedule, obs, params = DEFAULT_PARAMS) {
+    let p = 0;
+    TYPES.forEach((_, k) => (p += belief.probs[k] * typeLikelihood(belief, k, schedule, obs, params)));
+    return Math.log(Math.max(p, 1e-300));
+  }
+
+  // 한 판이 끝난 뒤 판단 갱신 (+ 전략 변경 감지)
   function update(belief, schedule, obs, params = DEFAULT_PARAMS) {
+    const ll = obsLogLik(belief, schedule, obs, params); // 판 시작 전 판단이 이번 입력을 얼마나 예상했나
+    const res = step(belief, schedule, obs, params);
+    const keep = Math.max(params.switchWindow || 0, 1);
+    const history = [...(belief.history || []), { schedule, obs, ll }].slice(-keep);
+    let next = { ...res.belief, history, switchedAt: belief.switchedAt ?? null };
+
+    const sw = checkSwitch(next, params);
+    if (sw.switched) next = { ...sw.belief, rounds: next.rounds, history, switchedAt: next.rounds };
+    return { belief: next, likelihoods: res.likelihoods, lastHit: res.lastHit, switched: sw.switched, switchScore: sw.score };
+  }
+
+  // 전략 변경 감지: 최근 K판을 두 판단이 각각 '보기 전에' 얼마나 잘 예상했는지 비교
+  //   지금 판단: 처음부터 쌓아 온 판단 (판마다 기록해 둔 ll)
+  //   새 판단:   K판 전부터 아무것도 모르는 상태로 다시 읽기 시작한 판단
+  // 새 판단이 e^margin배 넘게 잘 맞혔으면 → 예전 습관을 버리고 새 판단으로 갈아탐
+  function checkSwitch(belief, params) {
+    const K = params.switchWindow || 0;
+    const n = belief.rounds;
+    const sinceLast = belief.switchedAt === null ? Infinity : n - belief.switchedAt;
+    if (!K || n < Math.max(params.switchMinRounds, K + 1) || sinceLast < K || belief.history.length < K) {
+      return { switched: false, score: null };
+    }
+    const recent = belief.history.slice(-K);
+    let fresh = createBelief(params);
+    let llFresh = 0;
+    for (const h of recent) {
+      llFresh += obsLogLik(fresh, h.schedule, h.obs, params);
+      fresh = step(fresh, h.schedule, h.obs, params).belief; // lastHit도 새 판단 기준으로 남음 (예전 판단의 큰 실수로 다시 떠보지 않게)
+    }
+    const llNow = recent.reduce((s, h) => s + h.ll, 0);
+    const score = llFresh - llNow;
+    return { switched: score > params.switchMargin, score, belief: fresh };
+  }
+
+  // 판단 갱신 한 번 (베이즈 + 최근 판 가중치 + 개인 숫자 갱신)
+  function step(belief, schedule, obs, params) {
     const L = TYPES.map((_, k) => typeLikelihood(belief, k, schedule, obs, params));
 
     // 이번 판 예측이 얼마나 맞았나: 실제 시각 ±hitTolerance 안에 걸었던 확률 (안 눌렀으면 '그때까지 안 누를' 확률)
@@ -150,7 +206,7 @@
     const tol = params.hitToleranceMs;
     const lastHit = obs.pressed ? massBetween(mix, obs.t - tol, obs.t + tol) : massBetween(mix, obs.censorAt, Infinity);
 
-    // 1) 유형 확률: 점수 ← 0.8 × 이전 점수 + log(이번 입력이 그 유형에서 나올 가능성)
+    // 1) 유형 확률: 점수 ← decay(0.7) × 이전 점수 + log(이번 입력이 그 유형에서 나올 가능성)
     const posterior = softmax(belief.logw.map((lw, k) => params.decay * lw + Math.log(Math.max(L[k], 1e-300))));
     const probs = posterior.map((p) => (1 - params.floor) * p + params.floor / TYPES.length);
 
@@ -176,7 +232,15 @@
     });
 
     return {
-      belief: { probs, logw: probs.map((p) => Math.log(p)), personal, rounds: belief.rounds + 1, lastHit },
+      belief: {
+        probs,
+        logw: probs.map((p) => Math.log(p)),
+        personal,
+        rounds: belief.rounds + 1,
+        lastHit,
+        history: belief.history || [],
+        switchedAt: belief.switchedAt ?? null,
+      },
       likelihoods: L,
       lastHit,
     };
@@ -209,6 +273,7 @@
     predictive,
     massBetween,
     mode,
+    obsLogLik,
     update,
     ranking,
     describe,

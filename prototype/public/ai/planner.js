@@ -34,6 +34,9 @@
     probeTarget: 0.4, // 떠보기 판의 목표 포획 확률
     reprobeBelow: 0.2, // 공략 중 예측이 이만큼도 안 맞으면(전략을 바꾼 듯) 다음 판에 다시 떠봄
     reprobeRandomMax: 0.5, // 단, 이미 랜덤형으로 보는 확률이 이 이상이면 다시 떠봐도 소용없으니 생략
+    // 전략 변경을 감지한 다음 판에도 다시 떠볼지. 시뮬레이터에서 떠보면 그 사이 플레이어가 더 살아남아(목표 포획 40%)
+    // 끔: 감지하면 새로 읽은 판단으로 바로 공략 (2026-11-19, docs/ai-system.md)
+    reprobeOnSwitch: false,
     targetFrom: 0.5, // 공략 첫 판의 목표 포획 확률
     targetTo: 0.75, // 마지막 판의 목표 포획 확률
     pickTop: 25, // 목표에 가까운 후보 중 이만큼에서 무작위로 고름 (매번 같은 수를 두지 않게)
@@ -128,7 +131,9 @@
     let target;
 
     const pRandom = belief.probs[Model.TYPES.findIndex((t) => t.id === 'random')];
-    const surprised = roundNo > o.probeRounds + 1 && belief.lastHit !== null && belief.lastHit < o.reprobeBelow && pRandom < o.reprobeRandomMax;
+    const missedBig = roundNo > o.probeRounds + 1 && belief.lastHit !== null && belief.lastHit < o.reprobeBelow && pRandom < o.reprobeRandomMax;
+    const switchedNow = o.reprobeOnSwitch && roundNo > o.probeRounds && belief.switchedAt != null && belief.switchedAt === belief.rounds;
+    const surprised = missedBig || switchedNow;
 
     if (roundNo <= o.probeRounds || surprised) {
       // 떠보기: 첫 AI 시각을 일부러 바꿔, AI를 보고 누르는 사람인지 확인
@@ -167,7 +172,7 @@
     }
     const pick = choices[Math.floor(rng() * choices.length)];
     const ev = evaluate(belief, pick.a, o, modelParams);
-    return { times: pick.a, phase, target, maxPCatch: maxP, candidates: pool.length, ...ev };
+    return { times: pick.a, phase, target, maxPCatch: maxP, candidates: pool.length, afterSwitch: switchedNow, ...ev };
   }
 
   // 데이터 수집용: 공정 규칙 안에서 무작위 작전
