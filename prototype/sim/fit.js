@@ -6,6 +6,7 @@
 //   node prototype/sim/fit.js --selftest   정답을 아는 가상 데이터로 이 도구가 숫자를 되찾는지 점검
 //   --people 파일   닉네임이 섞인 게임을 한 사람으로 묶는 파일 (기본: prototype/sim/people.json)
 //   --file 파일     Supabase 대신 저장해 둔 기록으로 (--save 파일 로 저장. 기록 파일은 커밋하지 않음)
+//   --input key|touch|all   키보드(부스) / 터치(휴대폰) 기록만으로 맞추기 (기본 all). 섞여 있으면 보고서에 둘을 비교해 보여 줌
 //
 // 맞추는 숫자 (유형별, ms)
 //   습관 (prior.mean)  사람마다의 평균: 즉시형은 누른 시각, 눈치형·버티기형은 기준 AI 뒤 반응 시간
@@ -32,6 +33,7 @@ const Planner = require('../public/ai/planner.js');
 const FIT_TYPES = ['instant', 'fixed', 'follow', 'hold'];
 const ALL_TYPES = [...FIT_TYPES, 'random'];
 const NAME = { ...Object.fromEntries(Model.TYPES.map((t) => [t.id, t.name])), free: '자유' };
+const INPUT_NAME = { key: '키보드', touch: '터치', mouse: '마우스' };
 const K_MEAN = 1; // 습관: 기본값을 사람 1명분으로
 const NU_SPREAD = 2; // 사람 차이: 기본값을 사람 2명분으로
 const NU_NOISE = 10; // 흔들림: 기본값을 10판분으로
@@ -101,12 +103,18 @@ function normalize(raw, people) {
         const a = Object.values((r.ai && r.ai.schedule) || {})
           .map(Number)
           .sort((x, y) => x - y);
-        return { a, t: r.time_ms === null ? null : Number(r.time_ms), extra: r.extra_presses || 0 };
+        // 누른 방법: 11/19 휴대폰 화면 이전 기록에는 input이 없음 = 키보드
+        const input = r.ai && 'input' in r.ai ? r.ai.input : 'key';
+        return { a, t: r.time_ms === null ? null : Number(r.time_ms), extra: r.extra_presses || 0, input };
       })
       .filter((r) => r.a.length === 3);
     if (!rounds.length) continue;
     const person = people.byGame.get(g.id) || people.byNick.get(g.nickname) || g.nickname;
-    games.push({ id: g.id, person, nickname: g.nickname, label: g.label, rounds });
+    // 게임의 입력 방법 = 그 게임에서 가장 많이 쓴 방법 (한 게임은 한 기기)
+    const counts = {};
+    for (const r of rounds) if (r.input) counts[r.input] = (counts[r.input] || 0) + 1;
+    const input = Object.keys(counts).sort((x, y) => counts[y] - counts[x])[0] || 'key';
+    games.push({ id: g.id, person, nickname: g.nickname, label: g.label, input, rounds });
   }
   return games;
 }
@@ -369,6 +377,21 @@ function report(games, fitResult, current, candidate) {
     const by = [...ALL_TYPES, 'free'].map((l) => [l, gs.filter((g) => g.label === l).length]).filter(([, n]) => n);
     lines.push(`  ${p}: ${gs.length}게임 (${by.map(([l, n]) => `${NAME[l]} ${n}`).join(' · ')})`);
   }
+  // 입력 방법별: 터치(휴대폰)는 화면 반응이 늦어 시각이 키보드보다 늦게 찍힐 수 있음
+  const inputs = [...new Set(games.map((g) => g.input))];
+  lines.push(`  입력: ${inputs.map((k) => `${INPUT_NAME[k] || k} ${games.filter((g) => g.input === k).length}게임`).join(' · ')}`);
+  if (inputs.includes('key') && inputs.includes('touch')) {
+    const part = (k) => fitTypes(games.filter((g) => g.input === k), { shrink: false }).stats;
+    const ks = part('key');
+    const ts = part('touch');
+    const cmp = FIT_TYPES.filter((l) => ks[l].people && ts[l].people).map((l) =>
+      l === 'fixed' ? `${NAME[l]} 흔들림 ${ms(ks[l].noiseData)} vs ${ms(ts[l].noiseData)}` : `${NAME[l]} ${ms(ks[l].meanData)} vs ${ms(ts[l].meanData)}`
+    );
+    if (cmp.length) {
+      lines.push(`  키보드 vs 터치 (습관, ms): ${cmp.join(' · ')}`);
+      lines.push('  차이가 크면 --input key (부스) 또는 --input touch (휴대폰)로 나눠 맞춰 보세요.');
+    }
+  }
   lines.push('\n■ 유형별 숫자 (ms) — 데이터: 습관 / 사람 차이 / 흔들림 · 지금 숫자 → 새 숫자(사람이 적으면 기본값 쪽으로 당김)');
   for (const label of FIT_TYPES) {
     const st = fitResult.stats[label];
@@ -490,6 +513,7 @@ function parseArgs(argv) {
     else if (k === '--people') a.people = argv[++i];
     else if (k === '--file') a.file = argv[++i];
     else if (k === '--save') a.save = argv[++i];
+    else if (k === '--input') a.input = argv[++i];
   }
   return a;
 }
@@ -516,9 +540,10 @@ async function main() {
   }
   const raw = args.file ? JSON.parse(fs.readFileSync(args.file, 'utf8')) : await loadFromSupabase();
   if (args.save) fs.writeFileSync(args.save, JSON.stringify(raw));
-  const games = normalize(raw, loadPeople(args.people));
+  let games = normalize(raw, loadPeople(args.people));
+  if (args.input && args.input !== 'all') games = games.filter((g) => g.input === args.input);
   if (!games.length) {
-    console.log('수집 모드 기록이 아직 없어요.');
+    console.log(`수집 모드 기록이 아직 없어요${args.input && args.input !== 'all' ? ` (입력: ${INPUT_NAME[args.input] || args.input})` : ''}.`);
     return;
   }
   const fitResult = fitTypes(games);
@@ -529,7 +554,7 @@ async function main() {
   const candidate = Model.withParams(candidateParams);
   console.log(report(games, fitResult, current, candidate));
 
-  const meta = { fittedAt: date, people, games: games.length, rounds: sum(games.map((g) => g.rounds.length)) };
+  const meta = { fittedAt: date, people, games: games.length, rounds: sum(games.map((g) => g.rounds.length)), input: args.input || 'all' };
   fs.mkdirSync(RESULTS, { recursive: true });
   fs.writeFileSync(path.join(RESULTS, 'params-candidate.json'), JSON.stringify({ ...candidateParams, meta }, null, 2) + '\n');
   fs.writeFileSync(

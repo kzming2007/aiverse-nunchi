@@ -238,6 +238,10 @@ kbd {
 .entry-collect { margin-top: 18px; padding: 14px; border: 1px dashed var(--accent); border-radius: 14px; }
 .entry-collect.hidden { display: none; }
 .entry-collect label { display: block; margin-bottom: 8px; font-weight: 800; }
+.entry-collect-hint { margin-bottom: 12px; font-size: 14px; color: var(--muted); }
+.entry-collect-hint b { color: var(--text); }
+.entry-collect-hint.need { color: var(--bad); font-weight: 700; }
+.entry-collect-hint.need b { color: var(--bad); }
 #entry-label {
   width: 100%;
   padding: 10px 14px;
@@ -328,4 +332,123 @@ kbd {
   .final-rounds div { width: calc(33% - 8px); }
   .rules { grid-template-columns: 1fr; }
   .ai-panel { grid-template-columns: 1fr; }
+}
+
+/* ───────── 휴대폰·태블릿 (터치): 화면 아래 큰 버튼 ───────── */
+:root { --tap-h: clamp(108px, 19vh, 168px); }
+.tap-btn { display: none; }
+body.touch {
+  overscroll-behavior: none; /* 당겨서 새로고침 막기 */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* 두 번 눌러 확대 막기 */
+}
+body.touch .keyhint { display: none; }
+body.touch main { padding-bottom: calc(var(--tap-h) + 28px + env(safe-area-inset-bottom)); }
+body.touch .tap-btn {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 5; /* 닉네임·종료 화면(10)보다 아래 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--tap-h);
+  border: 2px solid var(--accent);
+  border-radius: 28px;
+  background: linear-gradient(180deg, #d2b6ff, var(--accent));
+  color: #160e40;
+  font: inherit;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  box-shadow: 0 10px 40px rgba(185, 140, 255, 0.45);
+  touch-action: none; /* 버튼에서 시작한 손가락은 스크롤·확대에 쓰지 않음 */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.06s, filter 0.06s;
+}
+body.touch .tap-btn:active { transform: scale(0.97); filter: brightness(0.92); }
+body.touch .tap-btn.wait,
+body.touch .tap-btn.done {
+  border-color: var(--line);
+  background: var(--panel-strong);
+  color: var(--muted);
+  font-size: 24px;
+  box-shadow: none;
+}
+body.touch .tap-btn.done { color: var(--player); }
+/* 판 결과를 보는 동안: 아래로 내려 숨김 */
+body.touch .tap-btn.hide {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(calc(100% + 24px));
+  transition: transform 0.25s, opacity 0.25s;
+}
+
+/* ───────── 좁은 화면 (휴대폰) ───────── */
+@media (max-width: 600px) {
+  .topbar { padding: 8px 12px; font-size: 12px; gap: 8px; }
+  .topbar > div:first-child { flex-shrink: 0; }
+  .topbar > div:last-child { text-align: right; }
+  /* 연결 상태는 점만 (끊겼을 때만 글자로) */
+  .conn { font-size: 0; }
+  .conn::before { margin-right: 0; }
+  .conn.bad { font-size: 12px; }
+  .conn.bad::before { margin-right: 4px; }
+  .game main { padding: 10px 12px; gap: 10px; }
+  .hud { gap: 14px; font-size: 13px; }
+  .hud b { font-size: 20px; }
+  .hud .nick { max-width: 45%; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+
+  .ai-seats { gap: 8px; }
+  .seat { padding: 10px 4px 8px; border-radius: 14px; }
+  .seat .avatar { font-size: 28px; }
+  .seat .name { margin-top: 2px; font-size: 13px; }
+  .seat .status { margin-top: 2px; font-size: 11px; }
+  .seat .callout { top: -12px; right: -6px; padding: 2px 9px; font-size: 17px; }
+  .seat.pressed { transform: translateY(-2px); }
+  /* 내 자리: 가로로 납작하게 */
+  .seat.player { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 8px 14px; }
+  .seat.player .avatar { font-size: 30px; }
+  .seat.player .name, .seat.player .status { margin-top: 0; }
+  .seat.player .status { font-size: 13px; }
+
+  .center { min-height: 112px; }
+  .big { font-size: 50px; letter-spacing: -1px; }
+  .big.title { font-size: 34px; }
+  .sub { margin-top: 6px; font-size: 14px; }
+  .timebar { height: 8px; margin-top: 10px; }
+  .warn { min-height: 20px; margin-top: 6px; font-size: 14px; }
+
+  .timeline-box { min-height: 0; }
+  .rules { gap: 8px; padding: 14px 16px; font-size: 14px; }
+  .ai-panel { gap: 10px; padding: 10px 12px; }
+  .ai-tactic { gap: 6px 8px; font-size: 13px; }
+  .ai-switch, .ai-warn { font-size: 13px; }
+  .ai-bar { grid-template-columns: 56px 1fr 38px; font-size: 13px; }
+
+  /* 닉네임·종료 화면: 길면 스크롤 */
+  .overlay { align-items: flex-start; overflow-y: auto; padding: 16px 12px; }
+  .overlay > * { margin: auto; }
+  .entry-card, .final-card { padding: 22px 16px; border-radius: 20px; }
+  .entry-title { margin-bottom: 14px; font-size: 26px; }
+  #entry-name { padding: 12px 14px; font-size: 24px; }
+  .entry-hint { font-size: 13px; }
+  .entry-start { width: 100%; font-size: 18px; }
+  .final-title { font-size: 16px; }
+  .final-nick { font-size: 20px; }
+  .final-score { font-size: 64px; }
+  .final-score span { font-size: 22px; }
+  .final-meta { font-size: 14px; }
+  .final-style { margin-top: 12px; padding: 12px; }
+  .final-style-head { font-size: 14px; }
+  .final-style-text { font-size: 15px; }
+  .final-read { font-size: 13px; }
+  .final-legend { font-size: 12px; }
+  .final-rounds { gap: 5px; margin: 14px 0; }
+  .final-rounds div { width: calc(20% - 4px); padding: 6px 1px; font-size: 11px; }
+  .final-rounds small { font-size: 10px; }
+  .final-hint { font-size: 16px; }
 }

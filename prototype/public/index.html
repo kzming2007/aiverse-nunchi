@@ -2,7 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070a1f">
   <title>AI 눈치게임</title>
   <link rel="stylesheet" href="/shared.css">
   <link rel="stylesheet" href="/game.css">
@@ -40,12 +41,16 @@
     <p class="keyhint"><kbd>Space</kbd> 버튼 누르기</p>
   </main>
 
+  <!-- 휴대폰·태블릿: 엄지로 누르는 큰 버튼 (터치 기기에서만 보임) -->
+  <button id="tap" class="tap-btn wait" type="button" aria-label="버튼 누르기">준비…</button>
+
   <div id="entry" class="overlay hidden">
     <form id="entry-form" class="entry-card" autocomplete="off">
       <div id="entry-title" class="entry-title">닉네임을 입력하세요</div>
       <input id="entry-name" maxlength="12" spellcheck="false" autocomplete="off" aria-label="닉네임">
-      <div class="entry-hint">실명 대신 닉네임으로 · 최대 12자 · 비워두면 회색 추천 닉네임으로 시작</div>
+      <div id="entry-name-hint" class="entry-hint">실명 대신 닉네임으로 · 최대 12자 · 비워두면 회색 추천 닉네임으로 시작</div>
       <div id="entry-collect" class="entry-collect hidden">
+        <div id="entry-collect-hint" class="entry-collect-hint">수집 모드는 <b>매번 같은 가명</b>을 직접 입력해요 (실명 X). 이 기기에서 쓴 가명은 다음에 자동으로 채워져요</div>
         <label for="entry-label">연기할 유형</label>
         <select id="entry-label"></select>
         <div class="entry-hint">한 게임 동안 이 유형 하나만 진지하게 연기해 주세요. 연타는 금지! 이 기록은 랭킹에 올라가지 않아요.</div>

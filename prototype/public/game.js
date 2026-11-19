@@ -45,6 +45,8 @@ const PLAN_OPTIONS = {
   totalRounds: CONFIG.totalRounds,
 };
 const STATION = (params.get('station') || '1').slice(0, 10);
+// 휴대폰·태블릿처럼 손가락으로 누르는 기기: 화면 아래 큰 버튼으로 플레이 (키보드도 그대로 됨)
+const TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
 const HIT_TOL = Model.DEFAULT_PARAMS.hitToleranceMs; // 예측 적중 기준 (±0.25초)
 const COLLISION_SEC = `${CONFIG.collisionMs / 1000}초`; // 안내 문구용 (예: "0.15초")
 
@@ -190,14 +192,43 @@ function showEntry() {
   suggestedName = makeNickname();
   $('entry-name').value = '';
   $('entry-name').placeholder = suggestedName;
+  if (MODE === 'collect') {
+    // 수집 모드: 같은 사람인지 알아야 하므로 추천 닉네임 대신 직접 입력. 이 기기에서 마지막에 쓴 가명을 채워 둠
+    $('entry-name').value = loadCollectName();
+    $('entry-name').placeholder = '가명 입력 (예: aeye1)';
+    $('entry-collect-hint').classList.remove('need');
+  }
   $('entry').classList.remove('hidden');
-  $('entry-name').focus();
+  setTap('wait', '준비…');
+  if (!TOUCH) $('entry-name').focus(); // 휴대폰에서는 자판이 바로 올라와 화면을 가리지 않게, 직접 누를 때만
+}
+
+// 수집 모드 가명: 이 기기(브라우저)에 기억해 두고 다음 게임에 채움
+const COLLECT_NAME_STORE = 'nunchi.collectName';
+function loadCollectName() {
+  try {
+    return localStorage.getItem(COLLECT_NAME_STORE) || '';
+  } catch {
+    return '';
+  }
+}
+function saveCollectName(name) {
+  try {
+    localStorage.setItem(COLLECT_NAME_STORE, name);
+  } catch {}
 }
 
 $('entry-form').addEventListener('submit', (e) => {
   e.preventDefault();
   if (state !== 'nickname') return;
-  const name = $('entry-name').value.trim().replace(/\s+/g, ' ').slice(0, 12) || suggestedName;
+  const typed = $('entry-name').value.trim().replace(/\s+/g, ' ').slice(0, 12);
+  if (MODE === 'collect' && !typed) {
+    $('entry-collect-hint').classList.add('need');
+    $('entry-name').focus();
+    return;
+  }
+  if (MODE === 'collect') saveCollectName(typed);
+  const name = typed || suggestedName;
   const label = MODE === 'collect' ? $('entry-label').value : null;
   $('entry-name').blur(); // 이후 스페이스바가 입력창에 들어가지 않도록
   $('entry-label').blur();
@@ -235,6 +266,7 @@ async function nextRound() {
   setTimebar(0);
   hideAiPanel();
   $('timeline').innerHTML = '';
+  setTap('wait', '준비…');
 
   // ▼ 카운트다운이 시작될 때 이번 판 작전을 확정합니다. 이후 참여자가 무엇을 하든 바뀌지 않습니다.
   const plan = makePlan();
@@ -252,9 +284,10 @@ function startRound(plan) {
   const aiTimes = {};
   plan.times.forEach((t, i) => (aiTimes[order[i]] = t));
 
-  round = { plan, order, start: performance.now(), aiTimes, presses: {}, count: 0, timer: null };
+  round = { plan, order, start: performance.now(), aiTimes, presses: {}, count: 0, timer: null, input: null };
   state = 'playing';
-  showBig('시작!', '원하는 타이밍에 스페이스바');
+  showBig('시작!', TOUCH ? '원하는 타이밍에 아래 버튼' : '원하는 타이밍에 스페이스바');
+  setTap('live', '누르기!');
   beep(880, 0.15);
   round.timer = setInterval(tick, 16);
 }
@@ -294,16 +327,23 @@ function pressDueAgents(upTo) {
     .forEach((a) => registerPress(a.id, round.aiTimes[a.id]));
 }
 
-function playerPress(now) {
+// input: 'key' 키보드 · 'touch' 손가락 · 'mouse' 마우스 (판 기록에 남겨, 기기마다 반응 시간 차이를 따로 볼 수 있게)
+function playerPress(now, input = 'key') {
   if (round.presses.player !== undefined) {
     extraKeys++; // 이미 누른 뒤 또 누름 (연타)
     if (MODE === 'collect') warn('✋ 한 판에 한 번만! 더 누르면 이 판은 학습에서 빠져요');
     return;
   }
   const time = now - round.start;
+  if (time < 0) {
+    extraKeys++; // '시작!' 전에 누른 입력이 늦게 처리된 경우 → 미리 누름
+    return;
+  }
   if (time > CONFIG.roundMs) return;
+  round.input = input;
   pressDueAgents(time); // 같은 순간 직전에 누른 AI가 있으면 순서를 맞춰 먼저 처리
   registerPress('player', time);
+  if (state === 'playing') setTap('done', '눌렀어요');
 }
 
 function registerPress(id, time) {
@@ -319,6 +359,7 @@ const probsObject = (probs) => Object.fromEntries(Model.TYPES.map((t, k) => [t.i
 
 function endRound() {
   state = 'result';
+  setTap('hide', ''); // 결과를 보는 동안은 버튼을 내려서 아래 'AI의 판단'을 가리지 않게
   const plan = round.plan;
   const caught = round.endedBy === 'caught';
   const results = Planner.judge(
@@ -353,7 +394,8 @@ function endRound() {
   updateHud();
 
   const band = plan.predictedMs !== null ? { center: plan.predictedMs, half: HIT_TOL } : null;
-  $('timeline').innerHTML = timelineHtml(shown, CONFIG.roundMs, { band });
+  const narrow = typeof matchMedia === 'function' && matchMedia('(max-width: 600px)').matches; // 휴대폰: 작은 타임라인
+  $('timeline').innerHTML = timelineHtml(shown, CONFIG.roundMs, { band, compact: narrow });
 
   const catchText = `AI 포획 예상 ${pct(pCatch)}`;
   if (me.out) {
@@ -385,6 +427,7 @@ function endRound() {
     extraPresses: extraKeys,
     ai: {
       endedBy: round.endedBy, // caught = AI에게 잡혀 즉시 종료, allAi = AI가 다 누름, time = 5초 지남
+      input: round.input, // 참여자가 누른 방법: key / touch / mouse (안 눌렀으면 null)
       phase: plan.phase,
       pCatch: round4(pCatch),
       target: round4(plan.target),
@@ -452,7 +495,7 @@ async function finishGame() {
       </div>
     </div>
     <div class="final-rounds">${chips}</div>
-    <div class="final-hint">스페이스바를 누르면 다음 사람 차례</div>
+    <div class="final-hint">${TOUCH ? '화면을 누르면 처음 화면으로' : '스페이스바를 누르면 다음 사람 차례'}</div>
   </div>`;
   $('final').classList.remove('hidden');
 
@@ -466,6 +509,22 @@ async function finishGame() {
 }
 
 // ───────── 입력 ─────────
+// 누른 순간 = 입력 이벤트가 생긴 시각 (처리가 늦어져도 정확하게). 값이 이상하면 지금 시각
+function eventTime(e) {
+  const now = performance.now();
+  const t = e && e.timeStamp;
+  return Number.isFinite(t) && t > 0 && Math.abs(now - t) < 2000 ? t : now;
+}
+
+// 키보드·화면 버튼이 같이 쓰는 '버튼 한 번 누름'
+function onPress(now, input) {
+  if (state === 'playing') playerPress(now, input);
+  else if (state === 'countdown') {
+    extraKeys++; // 시작 전에 누름 (연타)
+    if (MODE === 'collect') warn("⏳ 아직이에요! '시작!' 뒤에 한 번만 눌러 주세요");
+  } else if (state === 'final' && now >= acceptRestartAt) showEntry();
+}
+
 addEventListener('keydown', (e) => {
   if (state === 'nickname') {
     // 닉네임에는 띄어쓰기도 들어가야 하므로, 입력 중에는 스페이스바를 게임 키로 쓰지 않습니다
@@ -475,15 +534,26 @@ addEventListener('keydown', (e) => {
   if (!CONFIG.keys.includes(e.code)) return;
   e.preventDefault();
   if (e.repeat) return; // 꾹 누르고 있을 때 반복 입력 무시
-  const now = performance.now();
   unlockAudio();
-  if (state === 'playing') playerPress(now);
-  else if (state === 'countdown') {
-    extraKeys++; // 시작 전에 누름 (연타)
-    if (MODE === 'collect') warn("⏳ 아직이에요! '시작!' 뒤에 한 번만 눌러 주세요");
-  }
-  else if (state === 'final' && now >= acceptRestartAt) showEntry();
+  onPress(eventTime(e), 'key');
 });
+
+// 휴대폰: 화면 아래 큰 버튼. 손가락이 닿는 순간(pointerdown)에 누른 것으로 침
+$('tap').addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  unlockAudio();
+  onPress(eventTime(e), e.pointerType === 'mouse' ? 'mouse' : 'touch');
+});
+// 휴대폰 종료 화면은 아무 데나 눌러 처음 화면으로
+$('final').addEventListener('pointerdown', (e) => {
+  if (TOUCH && state === 'final') onPress(eventTime(e), 'touch');
+});
+
+// 큰 버튼 모양: wait(준비·대기) / live(지금 누르기) / done(이번 판 누름)
+function setTap(mode, label) {
+  $('tap').className = `tap-btn ${mode}`;
+  $('tap').textContent = label;
+}
 
 // ───────── 기록 저장 (Supabase) ─────────
 // 게임 시작 → 판 기록 → 게임 종료가 반드시 이 순서로 저장되도록 한 줄로 세워서 보냅니다.
@@ -574,9 +644,12 @@ $('station').textContent = `스테이션 ${STATION}${MODE === 'collect' ? ' · �
 if (MODE === 'test') $('entry-notice').textContent = `연습 모드예요 (${TEST_REASON}). 플레이 기록은 AI 학습에만 쓰이고 랭킹에는 올라가지 않아요`;
 if (MODE === 'collect') {
   $('entry-title').textContent = '데이터 수집 모드';
+  $('entry-name-hint').textContent = '실명 대신 가명으로 · 최대 12자';
   $('entry-label').innerHTML = COLLECT_LABELS.map((l) => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
   $('entry-collect').classList.remove('hidden');
 }
+document.body.classList.toggle('touch', TOUCH);
+if (TOUCH) document.querySelector('.entry-start').textContent = '시작하기';
 buildSeats();
 showEntry();
 checkServer();
