@@ -9,6 +9,8 @@
 
 # 로컬 서버 시절의 기록 파일 (지금은 Supabase 사용)
 prototype/data/
+# 숫자 맞추기 도구로 저장한 수집 기록 (--save)
+prototype/sim/data/
 
 node_modules/
 .DS_Store

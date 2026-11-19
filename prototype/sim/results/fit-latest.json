@@ -1,0 +1,104 @@
+{
+  "meta": {
+    "fittedAt": "2026-11-19",
+    "people": 1,
+    "games": 10,
+    "rounds": 100
+  },
+  "current": "default-2026-11-19-switch",
+  "candidate": {
+    "types": {
+      "instant": {
+        "noise": 67,
+        "prior": {
+          "mean": 179,
+          "sd": 80
+        }
+      },
+      "fixed": {
+        "noise": 160
+      },
+      "follow": {
+        "noise": 81,
+        "prior": {
+          "mean": 362,
+          "sd": 150
+        }
+      },
+      "hold": {
+        "noise": 135,
+        "prior": {
+          "mean": 442,
+          "sd": 150
+        }
+      }
+    },
+    "lapse": 0.1068,
+    "version": "fit-20261119-p1"
+  },
+  "stats": {
+    "instant": {
+      "people": 1,
+      "games": 2,
+      "rounds": 20,
+      "mashed": 9,
+      "used": 10,
+      "censored": 0,
+      "slips": 0,
+      "outliers": 1,
+      "noiseData": 44.33574319950645,
+      "meanData": 138.20000000080717
+    },
+    "fixed": {
+      "people": 1,
+      "games": 2,
+      "rounds": 20,
+      "mashed": 2,
+      "used": 14,
+      "censored": 0,
+      "slips": 0,
+      "outliers": 4,
+      "noiseData": 81.99804265977204
+    },
+    "follow": {
+      "people": 1,
+      "games": 2,
+      "rounds": 20,
+      "mashed": 5,
+      "used": 14,
+      "censored": 0,
+      "slips": 0,
+      "outliers": 1,
+      "noiseData": 43.044431640002244,
+      "meanData": 274.94285714253783
+    },
+    "hold": {
+      "people": 1,
+      "games": 2,
+      "rounds": 20,
+      "mashed": 1,
+      "used": 16,
+      "censored": 2,
+      "slips": 2,
+      "outliers": 1,
+      "noiseData": 138.01130531509327,
+      "meanData": 434.5132069882809
+    },
+    "lapse": {
+      "k": 9,
+      "n": 63,
+      "data": 0.14285714285714285
+    }
+  },
+  "random": {
+    "n": 14,
+    "censored": 2,
+    "bins": [
+      2,
+      5,
+      2,
+      3,
+      0
+    ]
+  }
+}

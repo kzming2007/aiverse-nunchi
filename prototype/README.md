@@ -86,6 +86,42 @@ from public.nunchi_rounds r join public.nunchi_games g on g.id = r.game_id
 where g.mode = 'collect' order by g.started_at, r.round;
 ```
 
+## 숫자 맞추기 도구
+
+수집 모드 기록으로 AI의 유형별 숫자를 다시 맞춥니다. 습관(평균 시각·반응 시간), 사람 차이, 흔들림, 실수 비율을 맞춰요.
+
+```bash
+node prototype/sim/fit.js
+```
+
+```bash
+node prototype/sim/fit.js --apply
+```
+
+```bash
+node prototype/sim/fit.js --selftest
+```
+
+- `fit.js`: Supabase에서 수집 기록을 읽어 숫자를 맞추고 보고서만 출력합니다. 게임은 그대로예요. 후보 숫자는 `sim/results/params-candidate.json`에 저장돼요.
+- `--apply`: 맞춘 숫자를 `public/ai/params.js`에 씁니다. 커밋·배포하면 게임에 반영돼요. 되돌리려면 그 파일의 값을 `null`로 두거나 git에서 이전 버전으로 돌립니다.
+- `--selftest`: 정답을 아는 가상 데이터로, 도구가 숫자를 제대로 되찾는지 점검합니다.
+- `--people 파일`: 닉네임이 섞인 게임을 한 사람으로 묶어요. 기본은 `sim/people.json`이고, 추천 닉네임은 다른 사람과 겹칠 수 있으니 게임 id로 지정해요.
+- `--save 파일` / `--file 파일`: 기록을 저장해 두고 같은 기록으로 다시 돌려요. 기록 파일은 `prototype/sim/data/`에 두고 커밋하지 않습니다.
+
+맞추는 방식
+
+- 연타한 판은 뺍니다. 시각이 안 남은 판(AI 셋이 먼저 다 누름)은 "그때까지는 안 눌렀다"는 정보로 계산해요. 습관보다 한참 늦게까지 안 누른 판은 실수로 셉니다.
+- 사람마다 같은 무게로 평균을 내고, 사람이 적으면 기본값 쪽으로 당겨요. 기본값을 습관은 사람 1명분, 사람 차이는 2명분, 흔들림은 10판분, 실수 비율은 40판분으로 칩니다.
+- 공격형의 시각은 연기할 때 정한 값이라 흔들림만 맞추고, 랜덤형은 누른 시각 분포만 보고해요.
+- 검증으로 실제 게임을 판마다 다시 돌려, 지금 숫자와 새 숫자를 비교합니다.
+  - 미리 예상한 정도, 읽힌 정도, 유형 정답률, 잘못 감지, AI 포획 예상과 실제로 잡힌 비율(점수 공정성)을 봐요.
+  - 사람이 2명 이상이면 한 사람씩 빼고 맞춘 뒤 그 사람으로 확인해요.
+- 모든 유형에 3명 이상 모이고 검증 결과가 나아졌을 때 적용을 권장합니다. 적용 전에는 맞춘 숫자로 밸런스를 확인해요.
+
+  ```bash
+  SIM_PARAMS=prototype/sim/results/params-candidate.json SIM_PLAYERS=params node prototype/sim/run.js 150 1
+  ```
+
 ## 시뮬레이터
 
 ```bash
@@ -101,6 +137,8 @@ node prototype/sim/run.js 150 1
 - `SIM_MODEL='{"switchWindow":0}'`: 모델 숫자 (이 예는 전략 변경 감지 끄기)
 - `SIM_PLANNER='{...}'`: 작전 계산기 숫자
 - `SIM_TAG=이름`: 결과를 `results/이름.json`으로 저장
+- `SIM_PARAMS=파일`: 숫자 맞추기 도구가 만든 후보 숫자로
+- `SIM_PLAYERS=params`: 가상 플레이어도 모델 숫자에서 뽑기. 맞춘 숫자를 쓰면 실제 사람에 가까운 가상 플레이어가 돼요
 
 가상 플레이어 결과이며, 사람의 재미나 실제 정확도는 아닙니다.
 
@@ -160,18 +198,20 @@ update public.nunchi_games set hidden = true where nickname = '숨길 닉네임'
 | 파일 | 역할 |
 |---|---|
 | `public/index.html` `game.js` `game.css` | 게임 화면 |
-| `public/ai/model.js` | 플레이어 모델: 유형 확률과 개인 숫자, 베이즈 갱신 (브라우저·Node 겸용) |
+| `public/ai/model.js` | 플레이어 모델: 유형 확률과 개인 숫자, 베이즈 갱신, 전략 변경 감지 (브라우저·Node 겸용) |
+| `public/ai/params.js` | 숫자 맞추기 도구가 만든 숫자 (`null`이면 model.js 기본값) |
 | `public/ai/planner.js` | 작전 계산: 후보 생성, 공정 규칙, 포획 확률, 떠보기/공략, 판정 (브라우저·Node 겸용) |
 | `public/board.html` `board.js` `board.css` | 현황판 (랭킹 + 10판 기록 팝업) |
 | `public/db.js` | Supabase 저장·조회·실시간 연결을 한곳에 모은 파일 |
 | `public/config.js` | Supabase 주소와 공개용(publishable) 키 |
 | `public/shared.js` `shared.css` | 게임과 현황판이 같이 쓰는 타임라인·스타일 |
 | `sim/run.js` | 밸런스 시뮬레이터 (결과: `sim/results/latest.json`) |
+| `sim/fit.js` `sim/people.json` | 숫자 맞추기 도구와 사람 묶기 파일 (결과: `sim/results/fit-latest.json`, `params-candidate.json`) |
 | `supabase/schema.sql` | DB 테이블·함수·권한 |
 | `server.js` | 로컬 확인용 정적 파일 서버 |
 | `vercel.json` `.vercelignore` | Vercel 배포 설정 |
 
 ## 다음 단계
 
-- 수집 데이터로 `ai/model.js`의 유형별 숫자(`DEFAULT_PARAMS.types`) 다시 맞추기
+- 팀원 수집이 모이면 `node prototype/sim/fit.js`로 숫자를 맞추고, 검증 후 `--apply`
 - USB 버튼: 대부분 키보드 입력으로 인식되므로, 버튼이 보내는 키를 `CONFIG.keys`에 추가하면 됩니다

@@ -1,0 +1,19 @@
+{
+  "설명": "닉네임이 섞인 수집 게임을 한 사람으로 묶습니다 (숫자 맞추기 도구 fit.js가 읽음). games는 게임 id, nicknames는 닉네임. 추천 닉네임(예: 느긋한 토끼)은 다른 사람과 겹칠 수 있으니 games로 지정하세요. 실명은 쓰지 않습니다.",
+  "people": {
+    "1": {
+      "nicknames": ["1"],
+      "games": [
+        "mwnghpzlzqcgoion",
+        "mwngk0ltrdkxrvqy",
+        "mwngmb2gns9bfxvx",
+        "mwngoijz430bowi9",
+        "mwngqohvvcgr32s8",
+        "mwngt8tagg93xw5w",
+        "mwngvjcjt08xp7zq",
+        "mwngxs0a78t39btf"
+      ],
+      "메모": "11/19 수집. 즉시형은 닉네임 1, 공격형은 3·4, 나머지는 닉네임을 비워 추천 닉네임으로 저장됨"
+    }
+  }
+}

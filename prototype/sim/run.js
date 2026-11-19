@@ -7,6 +7,8 @@
 //   SIM_MODEL='{"switchWindow":0}'      플레이어 모델 기본값 덮어쓰기 (예: 전략 변경 감지 끄기)
 //   SIM_PLANNER='{"reprobeOnSwitch":false}'  작전 계산기 기본값 덮어쓰기
 //   SIM_TAG=이름                         결과를 results/이름.json 으로 저장 (없으면 latest.json)
+//   SIM_PARAMS=파일                      숫자 맞추기 도구가 만든 후보 숫자로 (예: prototype/sim/results/params-candidate.json)
+//   SIM_PLAYERS=params                   가상 플레이어도 모델 숫자로 만들기 (맞춘 숫자 = 실제 사람에 가까운 가상 플레이어)
 'use strict';
 
 const fs = require('fs');
@@ -16,8 +18,10 @@ const Planner = require('../public/ai/planner.js');
 
 const GAMES = Number(process.argv[2]) || 150;
 const SEED = Number(process.argv[3]) || 1;
-if (process.env.SIM_MODEL) Object.assign(Model.DEFAULT_PARAMS, JSON.parse(process.env.SIM_MODEL));
+if (process.env.SIM_PARAMS) Model.applyParams(Model.DEFAULT_PARAMS, JSON.parse(fs.readFileSync(process.env.SIM_PARAMS, 'utf8')));
+if (process.env.SIM_MODEL) Model.applyParams(Model.DEFAULT_PARAMS, JSON.parse(process.env.SIM_MODEL));
 if (process.env.SIM_PLANNER) Object.assign(Planner.DEFAULTS, JSON.parse(process.env.SIM_PLANNER));
+const PLAYERS_FROM_PARAMS = process.env.SIM_PLAYERS === 'params';
 const TAG = (process.env.SIM_TAG || 'latest').replace(/[^\w.-]/g, '_');
 const ROUNDS = 10;
 const OPTS = { totalRounds: ROUNDS }; // 나머지는 planner.js의 DEFAULTS (게임과 같은 값)
@@ -37,7 +41,29 @@ const gauss = (r) => Math.sqrt(-2 * Math.log(Math.max(1e-12, r()))) * Math.cos(2
 
 // ───────── 가상 플레이어 ─────────
 // 각 함수는 (판 번호, AI 작전 a) → { type: 실제 유형, t: 누르려는 시각 } 을 돌려주는 플레이어를 만듭니다.
-const BASE = {
+// SIM_PLAYERS=params: 사람마다의 습관과 흔들림을 모델 숫자(맞춘 숫자)에서 뽑음
+const PT = Model.DEFAULT_PARAMS.types;
+const draw = (r, m, s, lo) => Math.max(lo, m + s * gauss(r));
+const FROM_PARAMS = {
+  instant: (r) => {
+    const mu = Math.min(PT.instant.meanRange[1], draw(r, PT.instant.prior.mean, PT.instant.prior.sd, PT.instant.meanRange[0]));
+    return () => ({ type: 'instant', t: mu + PT.instant.noise * gauss(r) });
+  },
+  fixed: (r) => {
+    const mu = 600 + 3000 * r();
+    return () => ({ type: 'fixed', t: mu + PT.fixed.noise * gauss(r) });
+  },
+  follow: (r) => {
+    const d = draw(r, PT.follow.prior.mean, PT.follow.prior.sd, 120);
+    return (k, a) => ({ type: 'follow', t: a[0] + Math.max(100, d + PT.follow.noise * gauss(r)) });
+  },
+  hold: (r) => {
+    const d = draw(r, PT.hold.prior.mean, PT.hold.prior.sd, 120);
+    return (k, a) => ({ type: 'hold', t: a[1] + Math.max(100, d + PT.hold.noise * gauss(r)) });
+  },
+  random: (r) => () => ({ type: 'random', t: 5000 * r() }),
+};
+const FIXED_RANGES = {
   instant: (r) => {
     const mu = 150 + 150 * r();
     return () => ({ type: 'instant', t: mu + 70 * gauss(r) });
@@ -56,6 +82,7 @@ const BASE = {
   },
   random: (r) => () => ({ type: 'random', t: 5000 * r() }),
 };
+const BASE = PLAYERS_FROM_PARAMS ? FROM_PARAMS : FIXED_RANGES;
 
 // 중간에 전략을 바꾸는 플레이어: at판부터 to 유형으로 플레이
 const switchTo = (from, to, at) => (r) => {
@@ -159,6 +186,7 @@ for (const kind of Object.keys(KINDS)) {
 
 const SWITCH = Model.DEFAULT_PARAMS.switchWindow ? `켜짐 (최근 ${Model.DEFAULT_PARAMS.switchWindow}판, 기준 e^${Model.DEFAULT_PARAMS.switchMargin})` : '꺼짐';
 console.log(`\n가상 플레이어 시뮬레이션 — 유형별 ${GAMES}게임 × ${ROUNDS}판, 시드 ${SEED}, 전략 변경 감지 ${SWITCH}`);
+console.log(`AI 숫자: ${Model.DEFAULT_PARAMS.version} · 가상 플레이어: ${PLAYERS_FROM_PARAMS ? '모델 숫자에서 뽑음 (SIM_PLAYERS=params)' : '고정 범위 (기본)'}`);
 console.log('(정답률 = 그 판까지 본 뒤 AI가 1순위로 고른 유형이 실제 유형과 같은 비율. 전략을 바꾼 플레이어는 바꾼 뒤의 유형이 정답)\n');
 console.log('유형              | 생존 1~3판 | 생존 4~10판 | AI 포획예상 | 게임 점수 | 읽힌 정도 | 정답률 3·4·6·8·10판 | 잘못 감지');
 for (const v of Object.values(results)) {
@@ -189,5 +217,9 @@ const outDir = path.join(__dirname, 'results');
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(
   path.join(outDir, `${TAG}.json`),
-  JSON.stringify({ games: GAMES, rounds: ROUNDS, seed: SEED, planner: { ...Planner.DEFAULTS, ...OPTS }, model: Model.DEFAULT_PARAMS, synthetic: true, results }, null, 2) + '\n'
+  JSON.stringify(
+    { games: GAMES, rounds: ROUNDS, seed: SEED, players: PLAYERS_FROM_PARAMS ? 'params' : 'fixed-ranges', planner: { ...Planner.DEFAULTS, ...OPTS }, model: Model.DEFAULT_PARAMS, synthetic: true, results },
+    null,
+    2
+  ) + '\n'
 );

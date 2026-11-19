@@ -8,12 +8,22 @@
 //   눈치형   t ≈ 첫째 AI + d     첫 AI가 누른 걸 보고 따라 누름
 //   버티기형 t ≈ 둘째 AI + d     둘째 AI가 누른 걸 보고 누름 (꼴찌 바로 앞 자리)
 //   랜덤형   0~5초 아무 때나
-// μ, d가 개인 숫자입니다. 아래 숫자들은 아직 기본값이며, 수집 모드 데이터로 다시 맞춥니다 (version).
+// μ, d가 개인 숫자입니다. 아래 BUILTIN_PARAMS는 손으로 정한 기본값이고,
+// 숫자 맞추기 도구(sim/fit.js --apply)가 수집 데이터로 맞춘 숫자는 ai/params.js에 따로 저장되어 그 위에 덮어씁니다.
 (function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) module.exports = api;
+  const isNode = typeof module === 'object' && module.exports;
+  let fitted = null; // ai/params.js (없거나 null이면 기본값 그대로)
+  if (isNode) {
+    try {
+      fitted = require('./params.js');
+    } catch (e) {
+      fitted = null;
+    }
+  } else fitted = root.NunchiParams || null;
+  const api = factory(fitted);
+  if (isNode) module.exports = api;
   else root.NunchiModel = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (FITTED) {
   'use strict';
 
   const TYPES = [
@@ -24,7 +34,7 @@
     { id: 'random', name: '랜덤형', base: null },
   ];
 
-  const DEFAULT_PARAMS = {
+  const BUILTIN_PARAMS = {
     version: 'default-2026-11-19-switch',
     roundMs: 5000,
     lapse: 0.05, // 어떤 유형이든 가끔 엉뚱하게 누를 확률 (0~5초 균등분포로 섞음)
@@ -44,6 +54,25 @@
       hold: { prior: { mean: 450, sd: 150 }, noise: 130 },
     },
   };
+
+  // 숫자 덮어쓰기: 맨 위 값(lapse, version …)은 그대로 바꾸고, types는 유형별로 prior·noise만 바꿈
+  function applyParams(target, p) {
+    if (!p) return target;
+    for (const [k, v] of Object.entries(p)) {
+      if (k === 'types' && v) {
+        for (const [id, t] of Object.entries(v)) {
+          if (!target.types[id] || !t) continue;
+          target.types[id] = { ...target.types[id], ...t, prior: { ...target.types[id].prior, ...(t.prior || {}) } };
+        }
+      } else target[k] = v;
+    }
+    return target;
+  }
+  const cloneParams = (p) => JSON.parse(JSON.stringify(p));
+  // 기본값 위에 p를 덮은 새 숫자 묶음 (원본은 그대로)
+  const withParams = (p) => applyParams(cloneParams(BUILTIN_PARAMS), p);
+  // 게임·시뮬레이터가 쓰는 숫자: 기본값 + ai/params.js
+  const DEFAULT_PARAMS = withParams(FITTED);
 
   // ───────── 수학 도구 ─────────
   function erf(x) {
@@ -267,7 +296,10 @@
 
   return {
     TYPES,
+    BUILTIN_PARAMS,
     DEFAULT_PARAMS,
+    applyParams,
+    withParams,
     normCdf,
     createBelief,
     predictive,

@@ -1,0 +1,36 @@
+{
+  "types": {
+    "instant": {
+      "noise": 67,
+      "prior": {
+        "mean": 179,
+        "sd": 80
+      }
+    },
+    "fixed": {
+      "noise": 160
+    },
+    "follow": {
+      "noise": 81,
+      "prior": {
+        "mean": 362,
+        "sd": 150
+      }
+    },
+    "hold": {
+      "noise": 135,
+      "prior": {
+        "mean": 442,
+        "sd": 150
+      }
+    }
+  },
+  "lapse": 0.1068,
+  "version": "fit-20261119-p1",
+  "meta": {
+    "fittedAt": "2026-11-19",
+    "people": 1,
+    "games": 10,
+    "rounds": 100
+  }
+}
