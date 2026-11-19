@@ -108,6 +108,16 @@ body {
   top: 50%;
   transform: translate(-50%, -50%);
 }
+/* AI가 예상한 타이밍 구간 */
+.tl-band {
+  position: absolute;
+  top: -8px;
+  height: 22px;
+  border: 2px dashed rgba(255, 92, 122, 0.85);
+  border-radius: 6px;
+  background: rgba(255, 92, 122, 0.16);
+}
+.tl.compact .tl-band { top: -6px; height: 18px; }
 .tl-dot {
   display: block;
   width: 16px;

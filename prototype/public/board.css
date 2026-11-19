@@ -111,9 +111,11 @@
   background: var(--panel);
 }
 .round-card.ko { border-left-color: var(--bad); }
+.d-legend { margin-top: 10px; font-size: 13px; color: var(--muted); }
 .r-head { display: flex; align-items: baseline; gap: 12px; font-size: 17px; }
 .r-head .r-num { font-weight: 900; color: var(--muted); }
 .r-head .r-score { margin-left: auto; font-weight: 800; }
+.r-head .r-ai { font-size: 13px; color: var(--muted); }
 
 @media (max-width: 800px) {
   .board main { padding: 20px 16px 40px; }

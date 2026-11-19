@@ -132,6 +132,48 @@ kbd {
   font-family: inherit;
 }
 
+/* AI의 작전과 판단 (판이 끝날 때마다) */
+.ai-panel {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(7, 10, 31, 0.55);
+}
+.ai-panel.hidden { display: none; }
+.ai-tactic { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 16px; }
+.ai-phase {
+  padding: 2px 10px;
+  border-radius: 99px;
+  background: var(--panel-strong);
+  font-weight: 800;
+}
+.ai-move { white-space: nowrap; }
+.role {
+  margin-left: 2px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #160e40;
+}
+.role-ambush { background: var(--bad); color: #fff; }
+.role-lure { background: var(--player); }
+.role-guard { background: var(--accent2); }
+.role-block { background: var(--muted); }
+.ai-legend { width: 100%; font-size: 13px; color: var(--muted); }
+
+.ai-bars { display: flex; flex-direction: column; gap: 5px; }
+.ai-bars-title { font-size: 13px; color: var(--muted); }
+.ai-bar { display: grid; grid-template-columns: 70px 1fr 44px; align-items: center; gap: 8px; font-size: 15px; }
+.ai-bar-track { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.ai-bar-track span { display: block; height: 100%; border-radius: 99px; background: var(--accent2); }
+.ai-bar.top .ai-bar-track span { background: var(--accent); }
+.ai-bar.top { font-weight: 800; }
+.ai-bar-pct { text-align: right; }
+
 /* 닉네임 입력 화면 */
 .entry-card {
   width: min(640px, 100%);
@@ -159,6 +201,20 @@ kbd {
 #entry-name:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(185, 140, 255, 0.25); }
 #entry-name::placeholder { color: rgba(169, 168, 214, 0.5); }
 .entry-hint { margin-top: 12px; font-size: 15px; color: var(--muted); }
+.entry-notice { margin-top: 14px; font-size: 13px; color: var(--muted); }
+.entry-collect { margin-top: 18px; padding: 14px; border: 1px dashed var(--accent); border-radius: 14px; }
+.entry-collect.hidden { display: none; }
+.entry-collect label { display: block; margin-bottom: 8px; font-weight: 800; }
+#entry-label {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 10, 31, 0.7);
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+}
 .entry-start {
   margin-top: 22px;
   padding: 12px 28px;
@@ -203,6 +259,19 @@ kbd {
   font-size: 14px;
   line-height: 1.4;
 }
+.final-rounds small { display: block; color: var(--muted); font-size: 12px; }
+.final-style {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(7, 10, 31, 0.45);
+  text-align: left;
+}
+.final-style-head { font-size: 17px; }
+.final-style-text { margin: 6px 0; font-size: 19px; }
+.final-read { margin-bottom: 10px; font-size: 16px; color: var(--muted); }
+.final-read b, .final-style-head b { color: var(--text); }
 .final-rounds .ok { border-color: var(--good); }
 .final-rounds .ko { border-color: var(--bad); color: var(--bad); }
 .final-hint { font-size: 20px; color: var(--accent); font-weight: 700; }
@@ -214,4 +283,5 @@ kbd {
   .big.title { font-size: 44px; }
   .final-rounds div { width: calc(33% - 8px); }
   .rules { grid-template-columns: 1fr; }
+  .ai-panel { grid-template-columns: 1fr; }
 }

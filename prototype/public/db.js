@@ -21,27 +21,33 @@ const DB = (() => {
     reason: r.reason,
     score: r.score,
     presses: r.presses || [],
+    ai: r.ai || null, // AI의 판단·작전·예상 (v2부터)
   });
 
   return {
-    // ── 게임 화면에서 쓰는 것 ──
-    startGame: ({ gameId, nickname, station, totalRounds }) =>
-      rpc('nunchi_start_game', {
+    // ── 게임 화면에서 쓰는 것 (v2: 수집 모드, AI 기록, 새 점수) ──
+    startGame: ({ gameId, nickname, station, totalRounds, mode = 'play', label = null, ruleVersion = null }) =>
+      rpc('nunchi_start_game_v2', {
         p_game_id: gameId,
         p_nickname: nickname,
         p_station: station,
         p_total_rounds: totalRounds,
+        p_mode: mode,
+        p_label: label,
+        p_rule_version: ruleVersion,
       }),
 
-    // 돌려주는 값: DB가 계산한 이번 판 점수
-    recordRound: ({ gameId, round, time, survived, reason, presses }) =>
-      rpc('nunchi_record_round', {
+    // 돌려주는 값: DB가 계산한 이번 판 점수 (살아남으면 100 × (1 + AI 포획 예상))
+    recordRound: ({ gameId, round, time, survived, reason, presses, extraPresses = 0, ai = null }) =>
+      rpc('nunchi_record_round_v2', {
         p_game_id: gameId,
         p_round: round,
         p_time_ms: time,
         p_survived: survived,
         p_reason: reason,
         p_presses: presses,
+        p_extra_presses: extraPresses,
+        p_ai: ai,
       }),
 
     // 돌려주는 값: 순위
@@ -68,7 +74,7 @@ const DB = (() => {
         client.from('nunchi_ranking').select('*').eq('game_id', gameId).maybeSingle(),
         client
           .from('nunchi_rounds')
-          .select('round, time_ms, survived, reason, score, presses')
+          .select('round, time_ms, survived, reason, score, presses, ai')
           .eq('game_id', gameId)
           .order('round'),
       ]);

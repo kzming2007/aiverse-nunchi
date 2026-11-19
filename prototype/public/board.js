@@ -70,14 +70,18 @@ function detailHtml(g) {
     .map((r) => {
       // 좁은 칸에 맞게 짧은 이름으로: 플레이어는 '나', AI는 'AI ' 떼고 '알파'
       const presses = r.presses.map((p) => ({ ...p, name: p.id === 'player' ? '나' : p.name.replace(/^AI\s*/, '') }));
+      const ai = r.ai || {};
+      const band = Number.isFinite(ai.predictedMs) ? { center: ai.predictedMs, half: 250 } : null;
+      const aiText = Number.isFinite(ai.pCatch) ? `<span class="r-ai">AI 포획 예상 ${Math.round(ai.pCatch * 100)}%</span>` : '';
       return `<div class="round-card ${r.survived ? 'ok' : 'ko'}">
         <div class="r-head">
           <span class="r-num">R${esc(r.round)}</span>
           <span>${r.time === null ? '안 누름' : `${fmtSec(r.time)}초`}</span>
           ${r.survived ? '<span class="good">생존</span>' : `<span class="bad">탈락 · ${REASON[r.reason] || ''}</span>`}
+          ${aiText}
           <span class="r-score">${r.survived ? `+${esc(r.score)}` : '0'}</span>
         </div>
-        ${timelineHtml(presses, 5000, { compact: true })}
+        ${timelineHtml(presses, 5000, { compact: true, band })}
       </div>`;
     })
     .join('');
@@ -88,7 +92,8 @@ function detailHtml(g) {
       <div class="d-score">${esc(g.totalScore)}<small>점</small></div>
     </div>
     <div class="d-meta">${g.rounds.length}판 중 ${g.survivedRounds}판 생존</div>
-    <div class="rounds">${rows || '<div class="empty">판 기록이 없어요</div>'}</div>`;
+    <div class="rounds">${rows || '<div class="empty">판 기록이 없어요</div>'}</div>
+    ${g.rounds.some((r) => r.ai) ? '<div class="d-legend">빨간 점선 = 그 판에 AI가 예상한 타이밍</div>' : ''}`;
 }
 
 $('ranking').addEventListener('click', (e) => {

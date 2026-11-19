@@ -4,4 +4,5 @@ package.json
 data
 supabase
 README.md
+sim
 .env*

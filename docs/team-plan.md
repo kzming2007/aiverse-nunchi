@@ -39,10 +39,10 @@
 | 회차·판 식별 | 있음 (`nunchi_games.id`, `nunchi_rounds.round`) |
 | 사람 입력 시각, AI 행동 시각 | 있음 (`time_ms`, 판마다 4명 전원의 `presses`) |
 | 판정과 점수 | 있음 (`survived`, `reason`, `score` — 점수는 DB가 계산) |
-| 규칙 버전 | 없음 |
-| AI 예측 시각(사람이 언제 누를 거라고 봤는지) | 없음 — 예측 AI를 넣을 때 추가 |
+| 규칙 버전 | 있음 (`nunchi_games.rule_version`, 11/19부터) |
+| AI 예측 시각(사람이 언제 누를 거라고 봤는지) | 있음 (`nunchi_rounds.ai` — 판단 확률, 예상 시각, 포획 예상, 작전과 역할) |
 | 취소 여부 | 없음 (끝까지 하지 않은 회차는 랭킹에 안 나옴) |
-| 유형 라벨(데이터 수집용) | 없음 — 수집 모드를 만들 때 추가 |
+| 유형 라벨(데이터 수집용) | 있음 (`nunchi_games.mode = 'collect'`, `label`, 판별 연타 횟수 `extra_presses`) |
 
 ## GitHub에서 이어가기
 

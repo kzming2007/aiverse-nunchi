@@ -18,7 +18,8 @@ const Shared = (() => {
   const LANES = ['above', 'below', 'above2', 'below2'];
 
   // presses: [{ id, name, time(ms|null), out, reason }]
-  function timelineHtml(presses, roundMs = 5000, { compact = false } = {}) {
+  // band: { center, half } 를 주면 AI가 예상한 타이밍 구간을 빨간 점선으로 표시
+  function timelineHtml(presses, roundMs = 5000, { compact = false, band = null } = {}) {
     const minGapMs = compact ? 800 : 600; // 같은 줄에 놓을 라벨 사이 최소 간격
     const items = presses
       .map((p) => ({ ...p, missed: p.time === null || p.time === undefined }))
@@ -51,7 +52,14 @@ const Shared = (() => {
       })
       .join('');
 
-    return `<div class="tl${compact ? ' compact' : ''}"><div class="tl-track">${ticks}${marks}</div></div>`;
+    let bandHtml = '';
+    if (band && Number.isFinite(band.center)) {
+      const lo = Math.max(0, band.center - band.half);
+      const hi = Math.min(roundMs, band.center + band.half);
+      bandHtml = `<div class="tl-band" style="left:${(lo / roundMs) * 100}%;width:${((hi - lo) / roundMs) * 100}%" title="AI 예상 ${fmtSec(band.center)}초"></div>`;
+    }
+
+    return `<div class="tl${compact ? ' compact' : ''}"><div class="tl-track">${ticks}${bandHtml}${marks}</div></div>`;
   }
 
   return { esc, fmtSec, REASON, timelineHtml };

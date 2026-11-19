@@ -34,15 +34,23 @@
 
     <section id="timeline" class="timeline-box"></section>
 
+    <section id="ai-panel" class="ai-panel hidden" aria-live="polite"></section>
+
     <p class="keyhint"><kbd>Space</kbd> 버튼 누르기</p>
   </main>
 
   <div id="entry" class="overlay hidden">
     <form id="entry-form" class="entry-card" autocomplete="off">
-      <div class="entry-title">닉네임을 입력하세요</div>
+      <div id="entry-title" class="entry-title">닉네임을 입력하세요</div>
       <input id="entry-name" maxlength="12" spellcheck="false" autocomplete="off" aria-label="닉네임">
       <div class="entry-hint">실명 대신 닉네임으로 · 최대 12자 · 비워두면 회색 추천 닉네임으로 시작</div>
+      <div id="entry-collect" class="entry-collect hidden">
+        <label for="entry-label">연기할 유형</label>
+        <select id="entry-label"></select>
+        <div class="entry-hint">한 게임 동안 이 유형 하나만 진지하게 연기해 주세요. 연타는 금지! 이 기록은 랭킹에 올라가지 않아요.</div>
+      </div>
       <button type="submit" class="entry-start">Enter ↵ 를 누르면 시작</button>
+      <div class="entry-notice">플레이 기록(닉네임과 누른 시각)은 랭킹과 AI 학습에 쓰여요</div>
     </form>
   </div>
 
@@ -52,6 +60,8 @@
   <script src="/config.js"></script>
   <script src="/db.js"></script>
   <script src="/shared.js"></script>
+  <script src="/ai/model.js"></script>
+  <script src="/ai/planner.js"></script>
   <script src="/game.js"></script>
 </body>
 </html>
