@@ -18,7 +18,8 @@
 /* ───────── 장면 ───────── */
 .stage {
   --cut: 14px;
-  --bot: min(230px, 17vh); /* 로봇 한 칸: 화면이 낮으면 줄여서 판 결과(AI 작전)까지 한 화면에 */
+  --bot: min(230px, 16vh); /* 로봇 한 칸: 화면이 낮으면 줄여서 판 결과(AI 작전)까지 한 화면에 */
+  --side-drop: calc(var(--bot) * 0.14); /* 양쪽 로봇을 내리는 정도 (둥근 탁자 둘레) */
   position: relative;
   overflow: hidden;
   display: flex;
@@ -206,22 +207,24 @@
 .seat.pressed .callout { opacity: 1; transform: scale(1) rotate(-8deg); transition: transform 0.15s steps(3), opacity 0.08s; }
 .seat.out .callout { background: var(--red); color: #fff; }
 
-/* ───────── 책상과 내 빨간 버튼 ───────── */
+/* ───────── 바닥 · 둥근 탁자 · 가운데 내 빨간 버튼 ───────── */
+/* 위쪽 46%는 창밖 우주가 그대로 보이고, 그 아래는 정거장 바닥 (창틀 한 줄 + 바닥 줄무늬) */
 .desk {
+  --side: 18px; /* 탁자 옆면 두께 */
   width: calc(100% + 40px);
   margin: 0 -20px;
-  padding: calc(var(--bot) * 0.22 + 12px) 20px 20px; /* 위쪽은 로봇 받침이 걸치는 자리 */
+  padding: 0 20px 18px;
   background:
-    repeating-linear-gradient(90deg, transparent 0 158px, rgba(16, 13, 44, 0.16) 158px 162px),
-    linear-gradient(var(--desk), var(--desk-dark));
-  box-shadow: inset 0 8px 0 var(--desk-edge), inset 0 14px 0 rgba(16, 13, 44, 0.2);
+    linear-gradient(var(--frame-hi), var(--frame-hi)) 0 46% / 100% 4px no-repeat,
+    repeating-linear-gradient(transparent 0 26px, rgba(16, 13, 44, 0.4) 26px 29px) 0 100% / 100% 54% no-repeat,
+    linear-gradient(#2e2758, #1b1640) 0 100% / 100% 54% no-repeat;
 }
-/* 책상 아래 주황 조명 */
+/* 바닥의 주황 조명 */
 .desk::before,
 .desk::after {
   content: '';
   position: absolute;
-  bottom: 22px;
+  bottom: 10px;
   width: 74px;
   height: 12px;
   background: var(--orange);
@@ -230,9 +233,45 @@
 .desk::before { left: 30px; transform: skewX(-28deg); }
 .desk::after { right: 30px; transform: skewX(28deg); }
 
-.player-row { display: flex; justify-content: center; }
-.seat.player { position: relative; display: flex; align-items: center; gap: 22px; }
-.red-wrap { position: relative; width: clamp(170px, min(24vw, 24vh), 270px); }
+/* 둥근 탁자: 윗면(타원) + 옆면(같은 타원을 아래로) + 바닥 그림자.
+   로봇 받침은 먼 쪽 가장자리에 올라앉고, 내 버튼은 한가운데 */
+.player-row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  justify-content: center;
+  width: min(100%, calc(var(--bot) * 4.2 + clamp(24px, 12vw, 168px)));
+  margin: 0 auto;
+  padding: calc(var(--bot) * 0.22 + 8px) 0 calc(var(--side) - 8px); /* 아래: 이름표가 탁자 앞 가장자리에 걸침 */
+}
+.player-row::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--bot) * -0.07) 0 var(--side); /* 위로 조금 더: 가운데 로봇 받침이 가장자리에 걸치지 않게 */
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #b63e48 0 30%, var(--desk) 31% 74%, var(--desk-dark) 75% 79%, var(--desk) 80%);
+  box-shadow:
+    inset 0 7px 0 var(--desk-edge),
+    0 var(--side) 0 var(--desk-dark),
+    0 calc(var(--side) + 5px) 0 var(--ink);
+}
+.player-row::after {
+  content: '';
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: -12px;
+  height: 36px;
+  z-index: -2;
+  border-radius: 50%;
+  background: rgba(8, 6, 26, 0.6);
+}
+/* 양쪽 로봇은 탁자 둘레를 따라 조금 앞쪽(아래)에 앉음 */
+.ai-seats > .seat:nth-child(odd) { transform: translateY(var(--side-drop)); }
+
+.seat.player { position: relative; display: flex; flex-direction: column; align-items: center; }
+.red-wrap { position: relative; width: clamp(160px, min(22vw, 22vh), 250px); }
 .red-btn {
   display: block;
   width: 100%;
@@ -248,8 +287,18 @@
 .seat.player.safe .red-btn { filter: drop-shadow(0 0 16px rgba(110, 242, 201, 0.9)); }
 .seat.player.out .red-btn { filter: drop-shadow(0 0 18px rgba(255, 80, 80, 1)) saturate(1.2); }
 .seat.player .callout { top: -14px; left: -10px; }
-.seat.player .plate { align-items: flex-start; min-width: 170px; }
-.seat.player .plate .name { font-size: 22px; letter-spacing: 1px; }
+/* 이름표: 탁자 앞쪽 가장자리에 놓인 명패 (이름 · 상태 한 줄) */
+.seat.player .plate {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: -14px; /* 버튼 받침에 살짝 겹침 */
+  padding: 5px 14px 6px;
+  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--frame-hi);
+  white-space: nowrap;
+}
+.seat.player .plate .name { font-size: 20px; letter-spacing: 1px; }
 .seat.player .nick { margin-left: 4px; color: var(--orange); }
 
 /* ───────── 장면 아래: 타임라인 · AI의 작전과 판단 ───────── */
@@ -456,7 +505,7 @@ body.touch {
 }
 body.touch .keyhint { display: none; }
 body.touch .red-wrap { display: none; } /* 장면 속 버튼 대신 화면 아래 버튼을 누름 */
-body.touch .seat.player .plate { align-items: center; min-width: 0; }
+body.touch .seat.player .plate { margin-top: 0; } /* 버튼이 없으니 이름표가 탁자 한가운데 */
 body.touch main { padding-bottom: calc(var(--tap-h) + 24px + env(safe-area-inset-bottom)); }
 body.touch .tap-btn {
   position: fixed;
@@ -509,7 +558,7 @@ body.touch .tap-btn.hide {
   .conn.bad::before { margin-right: 4px; }
 
   .game main { padding: 8px 8px 12px; gap: 10px; }
-  .stage { --cut: 10px; padding: 12px 10px 0; }
+  .stage { --cut: 10px; --side-drop: 10px; padding: 12px 10px 0; }
   .stage::before { height: 132px; }
   .stage::after {
     top: 18px;
@@ -544,15 +593,16 @@ body.touch .tap-btn.hide {
   .plate .status { font-size: 10.5px; }
   .callout { width: 42px; height: 42px; font-size: 15px; }
 
-  .desk { width: calc(100% + 20px); margin: 0 -10px; padding: 38px 10px 14px; }
+  .desk { --side: 10px; width: calc(100% + 20px); margin: 0 -10px; padding: 0 10px 16px; }
   .desk::before,
-  .desk::after { bottom: 12px; width: 36px; height: 8px; }
+  .desk::after { bottom: 6px; width: 36px; height: 8px; }
   .desk::before { left: 14px; }
   .desk::after { right: 14px; }
-  .seat.player { gap: 12px; }
+  .player-row { width: 100%; padding: 36px 0 calc(var(--side) - 2px); }
+  .player-row::after { bottom: -8px; height: 22px; }
   .red-wrap { width: 150px; }
-  .seat.player .plate { min-width: 0; }
-  .seat.player .plate .name { font-size: 16px; }
+  .seat.player .plate { gap: 6px; padding: 3px 10px 4px; }
+  .seat.player .plate .name { font-size: 15px; }
 
   .timeline-box { min-height: 0; }
   .rules { gap: 8px; padding: 14px 16px; font-size: 14px; }
