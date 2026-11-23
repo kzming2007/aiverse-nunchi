@@ -50,11 +50,12 @@ const TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and 
 const HIT_TOL = Model.DEFAULT_PARAMS.hitToleranceMs; // 예측 적중 기준 (±0.25초)
 const COLLISION_SEC = `${CONFIG.collisionMs / 1000}초`; // 안내 문구용 (예: "0.15초")
 
-const PLAYER = { id: 'player', name: '나', avatar: '🧑‍🚀' };
+const PLAYER = { id: 'player', name: '나' };
+// art: public/img/bots/{art}-{idle|press|result}.webp (대기·누름·결과 그림)
 const AGENTS = [
-  { id: 'ai1', name: 'AI 알파', avatar: '🤖' },
-  { id: 'ai2', name: 'AI 베타', avatar: '👾' },
-  { id: 'ai3', name: 'AI 감마', avatar: '🛸' },
+  { id: 'ai1', name: 'ALPHA', art: 'alpha' },
+  { id: 'ai2', name: 'BETA', art: 'beta' },
+  { id: 'ai3', name: 'GAMMA', art: 'gamma' },
 ];
 const SEATS = [PLAYER, ...AGENTS];
 
@@ -78,23 +79,39 @@ let acceptRestartAt = 0;
 let suggestedName = '';
 
 // ───────── 화면 그리기 ─────────
-function seatHtml(s) {
-  return `<div class="seat${s.id === 'player' ? ' player' : ''}" id="seat-${s.id}">
-    <span class="callout"></span>
-    <div class="avatar">${s.avatar}</div>
-    <div class="name">${esc(s.name)}</div>
-    <div class="status">대기 중</div>
+// AI 자리: 이름판 + 로봇 그림 3장(대기·누름·결과 중 하나만 보임, CSS가 자리 상태로 고름)
+function botSeatHtml(s) {
+  const imgs = ['idle', 'press', 'result']
+    .map((st) => `<img class="bot-img ${st}" src="/img/bots/${s.art}-${st}.webp" alt="" draggable="false">`)
+    .join('');
+  return `<div class="seat bot" id="seat-${s.id}">
+    <div class="plate"><span class="name">${esc(s.name)}</span><span class="status">대기 중</span></div>
+    <div class="bot-art" role="img" aria-label="${esc(s.name)}">${imgs}<span class="callout"></span></div>
+  </div>`;
+}
+
+// 내 자리: 빨간 큰 버튼 + 이름판 (휴대폰에서는 버튼 대신 화면 아래 큰 버튼을 씀)
+function playerSeatHtml() {
+  return `<div class="seat player" id="seat-player">
+    <div class="red-wrap"><img class="red-btn" src="/img/red-button.webp" alt="빨간 버튼" draggable="false"><span class="callout"></span></div>
+    <div class="plate"><span class="name">나 <span id="nickname" class="nick"></span></span><span class="status">대기 중</span></div>
   </div>`;
 }
 
 function buildSeats() {
-  $('ai-seats').innerHTML = AGENTS.map(seatHtml).join('');
-  $('player-seat').innerHTML = seatHtml(PLAYER);
+  $('ai-seats').innerHTML = AGENTS.map(botSeatHtml).join('');
+  $('player-seat').innerHTML = playerSeatHtml();
+  // PC에서도 빨간 버튼을 마우스로 누를 수 있음 (스페이스바와 같은 동작)
+  document.querySelector('#seat-player .red-btn').addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    unlockAudio();
+    onPress(eventTime(e), e.pointerType === 'mouse' ? 'mouse' : 'touch');
+  });
 }
 
 function setSeat(id, { cls = null, callout = null, status = null } = {}) {
   const el = $(`seat-${id}`);
-  if (cls !== null) el.className = `seat${id === 'player' ? ' player' : ''} ${cls}`;
+  if (cls !== null) el.className = `seat${id === 'player' ? ' player' : ' bot'} ${cls}`;
   if (callout !== null) el.querySelector('.callout').textContent = callout;
   if (status !== null) el.querySelector('.status').textContent = status;
 }
@@ -124,7 +141,7 @@ function setTimebar(ratio) {
 }
 
 function updateHud() {
-  $('round').textContent = game ? `${game.round} / ${CONFIG.totalRounds}` : '-';
+  $('round').innerHTML = game ? `${game.round}<small>/${CONFIG.totalRounds}</small>` : '-'; // 숫자만 들어감
   $('score').textContent = game ? game.totalScore : 0;
   $('nickname').textContent = game ? game.nickname : '';
 }
@@ -162,7 +179,7 @@ function tacticHtml(plan, order) {
   const parts = plan.times.map((t, i) => {
     const agent = AGENTS.find((a) => a.id === order[i]);
     const role = plan.roles[i];
-    return `<span class="ai-move"><b>${esc(agent.name.replace(/^AI\s*/, ''))}</b> ${fmtSec(t)}초 <span class="role role-${role}">${Planner.ROLE_NAMES[role]}</span></span>`;
+    return `<span class="ai-move"><b>${esc(agent.name)}</b> ${fmtSec(t)}초 <span class="role role-${role}">${Planner.ROLE_NAMES[role]}</span></span>`;
   });
   const head = plan.phase === 'attack' ? '🎯 공략' : '🔍 떠보기';
   return `<div class="ai-tactic"><span class="ai-phase">${head}</span> AI의 작전 ${parts.join('')}<span class="ai-legend">빨간 점선 = AI가 예상한 네 타이밍</span></div>`;
@@ -645,10 +662,12 @@ if (MODE === 'test') $('entry-notice').textContent = `연습 모드예요 (${TES
 if (MODE === 'collect') {
   $('entry-title').textContent = '데이터 수집 모드';
   $('entry-name-hint').textContent = '실명 대신 가명으로 · 최대 12자';
+  $('entry-notice').textContent = '수집 기록(가명, 고른 유형, 누른 시각)은 AI 학습에만 쓰여요';
   $('entry-label').innerHTML = COLLECT_LABELS.map((l) => `<option value="${l.id}">${esc(l.name)}</option>`).join('');
   $('entry-collect').classList.remove('hidden');
 }
 document.body.classList.toggle('touch', TOUCH);
+document.body.classList.toggle('collect', MODE === 'collect'); // 연타 경고 줄은 수집 모드에만
 if (TOUCH) document.querySelector('.entry-start').textContent = '시작하기';
 buildSeats();
 showEntry();

@@ -11,9 +11,51 @@
   --good: #5ef2b0;
   --bad: #ff5c7a;
   --player: #ffd166;
+
+  /* 픽셀 우주 정거장 팔레트 (게임 화면 · 현황판) */
+  --pixel: 'Galmuri11', 'Pretendard', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  --cream: #f7ecd0;
+  --ink: #100d2c; /* 가장 어두운 남색: 글자 그림자·테두리 */
+  --sky: #141238;
+  --panel-px: #1b1745;
+  --frame: #2d2556;
+  --frame-hi: #6b5c9e;
+  --wall: #554780;
+  --wall-dark: #3b3063;
+  --desk: #a6343d;
+  --desk-dark: #842933;
+  --desk-edge: #cf4d53;
+  --teal: #6ef2c9;
+  --orange: #f2a33a;
+  --red: #ff6b6b;
+  --lav: #bcaeea; /* 연보라: 보조 글자 */
 }
 
 * { box-sizing: border-box; }
+
+/* 모서리를 깎은 픽셀 상자 (깎는 크기는 각자 --cut) */
+.stage,
+.sign,
+.timeline-box,
+.ai-panel,
+.entry-card,
+.final-card,
+.entry-start,
+.final-style,
+.ranking .row,
+.modal-card,
+.round-card {
+  clip-path: polygon(
+    var(--cut) 0,
+    calc(100% - var(--cut)) 0,
+    100% var(--cut),
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    var(--cut) 100%,
+    0 calc(100% - var(--cut)),
+    0 var(--cut)
+  );
+}
 
 html, body { margin: 0; min-height: 100%; }
 
@@ -92,9 +134,8 @@ body {
 .tl { padding: 52px 24px 66px; }
 .tl-track {
   position: relative;
-  height: 6px;
-  border-radius: 99px;
-  background: rgba(255, 255, 255, 0.14);
+  height: 8px;
+  background: rgba(188, 174, 234, 0.25);
 }
 .tl-tick {
   position: absolute;
@@ -114,7 +155,6 @@ body {
   top: -8px;
   height: 22px;
   border: 2px dashed rgba(255, 92, 122, 0.85);
-  border-radius: 6px;
   background: rgba(255, 92, 122, 0.16);
 }
 .tl.compact .tl-band { top: -6px; height: 18px; }
@@ -122,7 +162,7 @@ body {
   display: block;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 2px;
   border: 2px solid #fff;
   background: var(--accent2);
 }

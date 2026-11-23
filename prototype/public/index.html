@@ -3,10 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#070a1f">
+  <meta name="theme-color" content="#14123a">
   <title>AI 눈치게임</title>
+  <!-- 픽셀 글꼴 (Galmuri, SIL OFL). 못 받으면 기본 글꼴로 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css">
   <link rel="stylesheet" href="/shared.css">
   <link rel="stylesheet" href="/game.css">
+  <!-- 로봇 그림은 상태(대기·누름·결과)가 바뀔 때 깜빡이지 않게 미리 받아 둠 -->
+  <link rel="preload" as="image" href="/img/bots/alpha-press.webp">
+  <link rel="preload" as="image" href="/img/bots/beta-press.webp">
+  <link rel="preload" as="image" href="/img/bots/gamma-press.webp">
 </head>
 <body class="game">
   <div class="stars"></div>
@@ -17,28 +23,30 @@
   </header>
 
   <main>
-    <section class="hud">
-      <div>라운드 <b id="round">-</b></div>
-      <div>점수 <b id="score">0</b></div>
-      <div id="nickname" class="nick"></div>
-    </section>
-
-    <section id="ai-seats" class="ai-seats"></section>
-
-    <section class="center">
-      <div id="big" class="big"></div>
-      <div id="sub" class="sub"></div>
+    <!-- 우주 정거장 장면: 전광판 → 시간 막대 → 창밖 우주 앞 AI 3명 → 빨간 책상의 내 버튼 -->
+    <section id="stage" class="stage">
+      <div class="stage-sky" aria-hidden="true"><span class="planet"></span><span class="ringed"></span></div>
+      <div class="sign">
+        <div class="sign-side">라운드<b id="round">-</b></div>
+        <div class="sign-main">
+          <div id="big" class="big"></div>
+          <div id="sub" class="sub"></div>
+        </div>
+        <div class="sign-side">점수<b id="score">0</b></div>
+      </div>
       <div class="timebar"><div id="timefill"></div></div>
       <div id="warn" class="warn" role="status" aria-live="polite"></div>
+      <div id="ai-seats" class="ai-seats"></div>
+      <div class="desk">
+        <div id="player-seat" class="player-row"></div>
+      </div>
     </section>
-
-    <section id="player-seat" class="player-row"></section>
 
     <section id="timeline" class="timeline-box"></section>
 
     <section id="ai-panel" class="ai-panel hidden" aria-live="polite"></section>
 
-    <p class="keyhint"><kbd>Space</kbd> 버튼 누르기</p>
+    <p class="keyhint"><kbd>Space</kbd> 또는 빨간 버튼 누르기</p>
   </main>
 
   <!-- 휴대폰·태블릿: 엄지로 누르는 큰 버튼 (터치 기기에서만 보임) -->
