@@ -5,8 +5,12 @@
   --tap-h: clamp(118px, 21vh, 176px);
   background: var(--sky);
 }
+/* 게임 중에는 장면만 보이므로 장면이 화면 높이를 채움 (남는 높이는 창밖 우주가 늘어남) */
+body.game { display: flex; flex-direction: column; }
 
 .game main {
+  flex: 1 0 auto;
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   padding: 14px 20px 22px;
@@ -18,8 +22,9 @@
 /* ───────── 장면 ───────── */
 .stage {
   --cut: 14px;
-  --bot: min(230px, 16vh); /* 로봇 한 칸: 화면이 낮으면 줄여서 판 결과(AI 작전)까지 한 화면에 */
+  --bot: min(260px, 22vh); /* 로봇 한 칸: 화면 높이에 맞춰 (게임 중에는 장면 아래에 다른 칸이 없음) */
   --side-drop: calc(var(--bot) * 0.14); /* 양쪽 로봇을 내리는 정도 (둥근 탁자 둘레) */
+  flex: 1 0 auto;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -150,7 +155,8 @@
   justify-content: center;
   gap: clamp(12px, 6vw, 84px);
   width: 100%;
-  margin-top: 6px;
+  margin-top: auto; /* 남는 높이는 시간 막대와 로봇 사이(창밖 우주)로 */
+  padding-top: 6px;
   margin-bottom: calc(var(--bot) * -0.22); /* 로봇의 버튼 받침이 책상 위에 올라앉게 */
 }
 .seat.bot { display: flex; flex-direction: column; align-items: center; }
@@ -271,7 +277,7 @@
 .ai-seats > .seat:nth-child(odd) { transform: translateY(var(--side-drop)); }
 
 .seat.player { position: relative; display: flex; flex-direction: column; align-items: center; }
-.red-wrap { position: relative; width: clamp(160px, min(22vw, 22vh), 250px); }
+.red-wrap { position: relative; width: clamp(160px, min(22vw, 24vh), 270px); }
 .red-btn {
   display: block;
   width: 100%;
@@ -301,16 +307,13 @@
 .seat.player .plate .name { font-size: 20px; letter-spacing: 1px; }
 .seat.player .nick { margin-left: 4px; color: var(--orange); }
 
-/* ───────── 장면 아래: 타임라인 · AI의 작전과 판단 ───────── */
-.timeline-box,
-.ai-panel {
+/* ───────── 장면 아래: 규칙 (대기 화면에만. 게임 중에는 장면만) ───────── */
+.rules-box {
   --cut: 8px;
-  border: 0;
-  border-radius: 0;
   background: var(--panel-px);
   box-shadow: inset 0 0 0 3px var(--frame), inset 0 0 0 6px var(--ink);
 }
-.timeline-box { min-height: 120px; }
+.rules-box.hidden { display: none; }
 
 .rules {
   display: grid;
@@ -330,13 +333,7 @@ kbd {
   font-family: var(--pixel);
 }
 
-.ai-panel {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-  padding: 16px 20px;
-}
-.ai-panel.hidden { display: none; }
+/* AI의 작전 · 유형 확률 막대 (종료 화면 '자세히보기'와 플레이 스타일) */
 .ai-tactic { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 16px; }
 .ai-phase { padding: 3px 10px; background: var(--frame-hi); color: var(--cream); font-family: var(--pixel); font-weight: 700; }
 .ai-move { white-space: nowrap; }
@@ -348,7 +345,7 @@ kbd {
 .role-block { background: var(--lav); }
 .ai-legend { width: 100%; font-size: 13px; color: var(--lav); }
 
-/* 수집 모드: 연타 경고 (가운데 잠깐 / 판 결과) */
+/* 수집 모드: 연타 경고 (가운데 잠깐 / 종료 화면 판 기록) */
 .warn {
   min-height: 26px;
   margin-top: 10px;
@@ -426,8 +423,9 @@ kbd {
   font-family: var(--pixel);
   font-size: 20px;
 }
-/* 빨간 픽셀 버튼 */
-.entry-start {
+/* 빨간 픽셀 버튼 (닉네임 시작 · 종료 화면 다음) */
+.entry-start,
+.final-next {
   --cut: 8px;
   margin-top: 24px;
   padding: 14px 34px 16px;
@@ -442,31 +440,24 @@ kbd {
   text-shadow: 0 2px 0 #7a1f24;
   cursor: pointer;
 }
-.entry-start:active { transform: translateY(3px); box-shadow: inset 0 0 0 3px var(--ink), inset 0 -3px 0 #9c2a2f; }
+.entry-start:active,
+.final-next:active { transform: translateY(3px); box-shadow: inset 0 0 0 3px var(--ink), inset 0 -3px 0 #9c2a2f; }
+.final-next:disabled { opacity: 0.45; cursor: default; transform: none; } /* 마지막 판 직후 2초 */
 
-/* ───────── 게임 종료 화면 ───────── */
-.final-card { width: min(760px, 100%); padding: 34px 32px 28px; }
+/* ───────── 게임 종료 화면: 총합 결과(위) + 1~10판 목록(아래, 판마다 자세히보기) ───────── */
+/* 판을 펼치면 길어지므로 화면 안에서 굴림. 짧을 때는 가운데 */
+#final { align-items: flex-start; overflow-y: auto; }
+#final > .final-card { margin: auto; }
+.final-card { width: min(1000px, 100%); padding: 28px 30px 24px; }
+.final-top { display: grid; grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.5fr); align-items: center; gap: 20px; }
 .final-title { font-family: var(--pixel); font-size: 20px; color: var(--lav); }
 .final-nick { margin-top: 6px; font-family: var(--pixel); font-size: 26px; font-weight: 700; color: var(--orange); }
-.final-score { margin: 10px 0 4px; font-family: var(--pixel); font-size: 92px; font-weight: 700; line-height: 1; color: var(--cream); text-shadow: 0 6px 0 var(--ink), 0 0 24px rgba(247, 236, 208, 0.25); }
-.final-score span { margin-left: 6px; font-size: 30px; color: var(--lav); }
+.final-score { margin: 10px 0 4px; font-family: var(--pixel); font-size: 84px; font-weight: 700; line-height: 1; color: var(--cream); text-shadow: 0 6px 0 var(--ink), 0 0 24px rgba(247, 236, 208, 0.25); }
+.final-score span { margin-left: 6px; font-size: 28px; color: var(--lav); }
 .final-meta { font-size: 18px; color: var(--lav); }
 .final-meta b { color: var(--cream); }
-.final-rounds { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 22px 0; }
-.final-rounds div {
-  width: calc(20% - 8px);
-  padding: 8px 4px;
-  background: var(--ink);
-  box-shadow: inset 0 0 0 2px var(--frame-hi);
-  font-size: 14px;
-  line-height: 1.4;
-}
-.final-rounds small { display: block; color: var(--lav); font-size: 12px; }
-.final-rounds .ok { box-shadow: inset 0 0 0 2px var(--teal); }
-.final-rounds .ko { box-shadow: inset 0 0 0 2px var(--red); color: var(--red); }
 .final-style {
   --cut: 8px;
-  margin-top: 18px;
   padding: 14px 18px;
   background: var(--ink);
   box-shadow: inset 0 0 0 2px var(--frame);
@@ -474,26 +465,73 @@ kbd {
 }
 .final-style-head { font-size: 17px; }
 .final-style-text { margin: 6px 0; font-size: 19px; }
+.final-trick { margin: -2px 0 6px; font-size: 15px; font-weight: 700; color: #ffd166; } /* 마지막 판만 다르게 누른 경우 */
+.final-trick small { font-weight: 400; color: var(--lav); }
 .final-read { margin-bottom: 10px; font-size: 16px; color: var(--lav); }
 .final-read b,
 .final-style-head b { color: var(--cream); }
+
+/* 판별 기록: 한 줄 = 판 · 단계 · 누른 시각 · 결과 · 자세히보기 */
+.final-list { margin-top: 18px; text-align: left; }
+.final-list-head { margin-bottom: 8px; font-family: var(--pixel); font-size: 18px; font-weight: 700; color: var(--cream); }
+.final-list-head small { margin-left: 8px; font-family: 'Pretendard', 'Malgun Gothic', sans-serif; font-size: 13px; font-weight: 400; color: var(--lav); }
+.fr {
+  --cut: 6px;
+  margin-top: 5px;
+  background: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--frame);
+}
+.fr[open] { box-shadow: inset 0 0 0 2px var(--frame-hi); }
+.fr summary {
+  display: grid;
+  grid-template-columns: 50px 92px 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px 7px 14px;
+  font-size: 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.fr summary::-webkit-details-marker { display: none; }
+.fr summary:hover .fr-more { background: var(--frame-hi); }
+.fr-no { font-family: var(--pixel); font-weight: 700; color: var(--cream); }
+.fr-phase { font-size: 13px; color: var(--lav); }
+.fr-time { font-family: var(--pixel); text-align: right; }
+.fr-res { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr.ok .fr-res { color: var(--teal); }
+.fr.ko .fr-res { color: var(--red); }
+.fr-more { padding: 4px 10px; background: var(--frame); font-size: 13px; font-weight: 700; color: var(--cream); white-space: nowrap; }
+.fr-close,
+.fr[open] .fr-open { display: none; }
+.fr[open] .fr-close { display: inline; }
+/* 펼친 내용: 타임라인(위 전체) → 왼쪽 수치·작전 / 오른쪽 AI의 판단 */
+.fr-detail { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; gap: 4px 20px; padding: 0 16px 16px; }
+.fr-detail > .tl { grid-column: 1 / -1; }
+.fr-info { display: flex; flex-direction: column; gap: 10px; }
+.fr-facts { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--lav); }
+.fr-facts b { color: var(--cream); }
+.fr-facts em { font-style: normal; font-weight: 800; }
+.fr-facts .hit { color: var(--teal); }
+.fr-facts .miss { color: var(--lav); }
 .final-legend {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 10px;
+  margin-top: 14px;
   padding-top: 8px;
   border-top: 2px dashed var(--frame);
   font-size: 13px;
+  text-align: left;
   color: var(--lav);
 }
 .final-legend b { margin-right: 6px; color: var(--cream); }
-.final-hint { font-family: var(--pixel); font-size: 20px; font-weight: 700; color: var(--teal); }
+.final-next { margin-top: 18px; }
 
 @media (max-width: 760px) {
-  .final-rounds div { width: calc(33% - 8px); }
   .rules { grid-template-columns: 1fr; }
-  .ai-panel { grid-template-columns: 1fr; }
+  .final-top { grid-template-columns: 1fr; gap: 14px; }
+  .fr-detail { grid-template-columns: 1fr; gap: 10px; }
 }
 
 /* ───────── 휴대폰·태블릿 (터치): 화면 아래 빨간 큰 버튼 ───────── */
@@ -604,13 +642,11 @@ body.touch .tap-btn.hide {
   .seat.player .plate { gap: 6px; padding: 3px 10px 4px; }
   .seat.player .plate .name { font-size: 15px; }
 
-  .timeline-box { min-height: 0; }
   .rules { gap: 8px; padding: 14px 16px; font-size: 14px; }
-  .ai-panel { gap: 10px; padding: 12px 14px; }
   .ai-tactic { gap: 6px 8px; font-size: 13px; }
   .ai-switch,
   .ai-warn { font-size: 13px; }
-  /* 유형 막대 5개를 두 줄로 나눠 판 결과가 한 화면에 들어오게 */
+  /* 유형 막대를 두 줄로 나눠 짧게 */
   .ai-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 12px; }
   .ai-bars-title { grid-column: 1 / -1; font-size: 12px; }
   .ai-bar { grid-template-columns: 50px minmax(0, 1fr) 32px; gap: 5px; font-size: 12px; }
@@ -629,13 +665,23 @@ body.touch .tap-btn.hide {
   .final-score { font-size: 62px; }
   .final-score span { font-size: 22px; }
   .final-meta { font-size: 14px; }
-  .final-style { margin-top: 12px; padding: 12px; }
+  .final-style { padding: 12px; }
   .final-style-head { font-size: 14px; }
   .final-style-text { font-size: 15px; }
+  .final-trick { font-size: 13px; }
   .final-read { font-size: 13px; }
   .final-legend { font-size: 12px; }
-  .final-rounds { gap: 5px; margin: 14px 0; }
-  .final-rounds div { width: calc(20% - 4px); padding: 6px 1px; font-size: 11px; }
-  .final-rounds small { font-size: 10px; }
-  .final-hint { font-size: 16px; }
+  .final-list { margin-top: 14px; }
+  .final-list-head { font-size: 15px; }
+  .final-list-head small { display: block; margin: 2px 0 0; font-size: 12px; }
+  /* 판 한 줄: 단계는 펼친 내용(작전)에 있으니 숨김 */
+  .fr summary { grid-template-columns: 36px 50px minmax(0, 1fr) auto; gap: 6px; padding: 7px 8px 7px 10px; font-size: 13px; }
+  .fr-phase { display: none; }
+  .fr-more { padding: 3px 7px; font-size: 12px; }
+  .fr-detail { padding: 0 10px 12px; }
+  .fr-facts { gap: 2px 12px; font-size: 13px; }
+  .final-next { width: 100%; font-size: 17px; }
+}
+@media (max-width: 380px) {
+  .fr-why { display: none; } /* '잡힘 · 동시 입력' → '잡힘' (이유는 펼친 내용에) */
 }

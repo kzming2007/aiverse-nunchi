@@ -36,12 +36,13 @@
 /* 모서리를 깎은 픽셀 상자 (깎는 크기는 각자 --cut) */
 .stage,
 .sign,
-.timeline-box,
-.ai-panel,
+.rules-box,
 .entry-card,
 .final-card,
 .entry-start,
+.final-next,
 .final-style,
+.fr,
 .ranking .row,
 .modal-card,
 .round-card {
