@@ -64,7 +64,6 @@ const REASON_TEXT = {
   last: '가장 마지막이었어요',
   timeout: '5초 안에 누르지 못했어요',
 };
-const PHASE_TEXT = { probe: 'AI가 타이밍을 탐색 중', reprobe: 'AI가 다시 떠보는 중', attack: 'AI가 타이밍을 공략 중', collect: '데이터 수집 중' };
 const COLLECT_LABELS = [...Model.TYPES.map((t) => ({ id: t.id, name: t.name })), { id: 'free', name: '자유 (평소대로)' }];
 
 const $ = (id) => document.getElementById(id);
@@ -290,7 +289,7 @@ async function nextRound() {
   // ▼ 카운트다운이 시작될 때 이번 판 작전을 확정합니다. 이후 참여자가 무엇을 하든 바뀌지 않습니다.
   const plan = makePlan();
   for (const n of ['3', '2', '1']) {
-    showBig(n, `${game.round}라운드 · ${PHASE_TEXT[plan.phase]} · 작전 확정 🔒`);
+    showBig(n);
     beep(440, 0.08);
     await sleep(CONFIG.countdownStepMs);
   }
@@ -486,8 +485,9 @@ async function finishGame() {
   const observed = CONFIG.totalRounds > Planner.DEFAULTS.probeRounds ? Planner.DEFAULTS.probeRounds : 0;
   const forecastRounds = game.rounds.filter(r => r.round > observed);
   const eligible = forecastRounds.filter(r => r.predictionHit !== null);
-  const missing = forecastRounds.length - eligible.length;
-  const scope = [observed && `첫 ${observed}판 ${MODE === 'collect' ? '집계 제외' : '관찰'}`, missing && `비교할 입력 없는 ${missing}판 제외`].filter(Boolean).join(' · ');
+  const noInput = forecastRounds.filter(r => r.time === null).length;
+  const noForecast = forecastRounds.length - eligible.length - noInput;
+  const scope = [observed && `${MODE === 'collect' ? '집계 제외' : '관찰'} ${observed}판`, noInput && `미입력 ${noInput}판`, noForecast && `예측 없음 ${noForecast}판`].filter(Boolean).join(' · ');
   const hits = eligible.filter(r => r.predictionHit).length;
   const style = Model.describe(game.belief);
   const [first, second] = Model.ranking(game.belief);
@@ -497,6 +497,7 @@ async function finishGame() {
   const behavior = !hasInput ? '버튼 입력이 없어 유형을 비교하기 어려워요.'
     : close ? '이번 기록에는 두 유형의 특징이 비슷하게 나타났어요.'
     : style.readable ? style.text.replace(/ 습관$/, ' 편이에요.') : '누르는 시각이 판마다 달랐어요.';
+  const behaviorHtml = esc(behavior).replace(/\d+(?:\.\d+)?초/g, '<strong class="read-time">$&</strong>');
   const summary = !eligible.length ? '비교할 입력이 없어요.'
     : !hits ? 'AI의 예상 구간을 모두 피했어요!'
     : hits === eligible.length ? '이번에는 AI가 매번 타이밍을 읽었어요.'
@@ -511,7 +512,7 @@ async function finishGame() {
   }).join('');
   $('final').innerHTML = `<section class="final-card debrief">
     <header class="debrief-head"><span>${esc(game.nickname)}</span><b>AI 눈치게임</b><span>${modeLabel} ${game.rounds.length}판 종료</span></header>
-    <div class="type-reveal"><p>AI가 본 이번 플레이</p><h1>${esc(type)}</h1><p>${esc(behavior)}</p></div>
+    <div class="type-reveal"><p>AI가 본 이번 플레이</p><h1>${esc(type)}</h1><p>${behaviorHtml}</p></div>
     <div class="prediction"><span>${summary}</span>${eligible.length ? `<b>${eligible.length}판 중 ${hits}판 적중</b>` : ''}${scope ? `<small>${scope}</small>` : ''}</div>
     <div class="debrief-stats"><div>총점<strong>${game.totalScore}<small>점</small><span class="record-flag" hidden>NEW</span></strong></div>
       <div>생존<strong>${survived}<small> / ${game.rounds.length}판</small></strong></div>

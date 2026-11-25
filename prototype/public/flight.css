@@ -54,10 +54,7 @@ body.game {background:#0d1025;color:#f9edcf;}
 @keyframes cap-contact {0%,12% {transform:none;animation-timing-function:steps(3,end)} 24%,50% {transform:translateY(23%);animation-timing-function:steps(5,end)} 88%,100% {transform:none}}
 #stage .bot[data-strike] .switch-art::after {content:'';position:absolute;z-index:5;left:27%;top:24%;width:4%;height:7%;background:#fff6d6;box-shadow:-.65cqw -.18cqw 0 var(--lamp),.26cqw -.52cqw 0 var(--lamp);pointer-events:none;animation:knuckle-contact 250ms steps(2,end) both}
 @keyframes knuckle-contact {0%,16%,47%,100% {opacity:0} 24%,34% {opacity:1;transform:translateY(-2px)}}
-.impact {display:block;position:absolute;inset:72% -1% -2%;border-radius:50%;opacity:0;z-index:0;border:.27cqw solid #ffe4a2}
-.seat[data-strike] .impact {animation:base-impact 235ms ease-out both}
-@keyframes base-impact {0%,12% {opacity:0;transform:scale(.85)} 18% {opacity:.94;transform:scale(.96)} 100% {opacity:0;transform:scale(1.23,1.44)}}
-#stage .callout {z-index:6;top:2%;left:-17%;width:39%;height:auto;aspect-ratio:1;display:grid;padding:0 0 .07em;font:700 clamp(18px,3.1cqw,56px)/1 var(--pixel);color:#27213d;background:#fff0c2;clip-path:polygon(4% 34%,17% 31%,9% 13%,33% 17%,45% 3%,55% 15%,73% 4%,77% 20%,96% 17%,90% 38%,100% 48%,86% 58%,92% 77%,63% 76%,51% 99%,46% 81%,18% 88%,22% 68%,2% 65%,12% 49%);transition:none}
+#stage .callout {z-index:6;top:2%;left:-17%;width:39%;height:auto;aspect-ratio:1;display:grid;padding:0 0 .07em;font:700 clamp(18px,3.1cqw,56px)/1 var(--pixel);color:#27213d;background:#fff0c2;transition:none}
 #stage .seat.pressed .callout {transform:none;opacity:1}
 #stage .seat[data-together] .callout {background:#ff9b77;color:#261735}
 #stage .seat.pressed.out:not([data-together]) .callout {background:#e3c5ca}
@@ -95,7 +92,7 @@ body.touch main {padding-bottom:12px}
   .game #stage {aspect-ratio:4/5;background-image:url('/flight/bridge-mobile.webp')}
   #stage .sign-side {font-size:10px} #stage .sign-side b {display:block;margin:1px 0}
   #stage .big {font-size:clamp(18px,5.2cqw,30px)}
-  #stage .sign-side {transform:translateY(115%)}
+  #stage .sign-side {transform:translateY(66%);font-size:11px}
   #stage > .ai-seats {padding:0 3%;bottom:30%}
   #stage .ai-seats > .seat {width:31%}
   #stage .bot .plate {bottom:99%}
@@ -122,14 +119,27 @@ body.touch main {padding-bottom:12px}
 #seat-ai1 {--lamp:#75ffdc}
 #seat-ai2 {--lamp:#ffd167}
 #seat-ai3 {--lamp:#d6a1ff}
-#stage .impact {inset:64% -5% 0;z-index:4;border:0;border-radius:0;background:var(--lamp);pointer-events:none;
-  clip-path:polygon(0 26%,9% 26%,9% 40%,18% 40%,18% 56%,29% 56%,29% 67%,71% 67%,71% 56%,82% 56%,82% 40%,91% 40%,91% 26%,100% 26%,100% 48%,92% 48%,92% 61%,83% 61%,83% 75%,72% 75%,72% 86%,28% 86%,28% 75%,17% 75%,17% 61%,8% 61%,8% 48%,0 48%)}
-#stage .seat[data-strike] .impact {animation:socket-flare 220ms steps(4,end) both}
-@keyframes socket-flare {0%,10%{opacity:0;transform:scale(.86)}23%,35%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.22,1.18)}}
+/* The socket masks the back of both wave fronts. The leading arc advances
+   farther toward the viewer; the bright second arc follows the rim. */
+.impact {position:absolute;inset:38% -7% -7%;z-index:0;pointer-events:none}
+.impact::before,.impact::after {content:'';position:absolute;inset:0;opacity:0;background:var(--lamp);
+  mask:url('/flight/pulse.svg') center / 100% 100% no-repeat;transform-origin:50% 48%}
+.seat[data-strike] .impact::before {animation:shock-front 245ms steps(6,end) both}
+.seat[data-strike] .impact::after {background:#fff1c2;animation:shock-echo 185ms 48ms steps(5,end) both}
+@keyframes shock-front {
+  0%,8% {opacity:0;transform:scale(1)}
+  14% {opacity:1;transform:scale(1.02)}
+  62% {opacity:1;transform:translateY(9%) scale(1.36,1.24)}
+  100% {opacity:0;transform:translateY(16%) scale(1.54,1.45)}
+}
+@keyframes shock-echo {
+  0% {opacity:0;transform:scale(1)}
+  14%,36% {opacity:.94;transform:scale(1.04)}
+  100% {opacity:0;transform:translateY(9%) scale(1.31,1.26)}
+}
 #stage .seat[data-strike] .cap {filter:brightness(1.18)}
-#stage .callout {clip-path:polygon(0 26%,15% 26%,15% 7%,33% 7%,33% 14%,48% 14%,48% 0,63% 0,63% 13%,81% 13%,81% 6%,94% 6%,94% 31%,100% 31%,100% 66%,88% 66%,88% 82%,65% 82%,65% 91%,49% 91%,49% 100%,40% 100%,40% 86%,25% 86%,25% 78%,9% 78%,9% 57%,0 57%)}
 #stage .seat[data-together] .callout {background:#ffab86;outline:2px solid #ffcd91}
-#stage .sign-side b {font-size:clamp(14px,1.85cqw,33px);font-variant-numeric:tabular-nums}
+#stage .sign-side b {font-size:clamp(21px,2.65cqw,46px);font-variant-numeric:tabular-nums}
 #stage .sign-side small {font-size:.62em}
 #stage .player .plate .status {font-family:var(--pixel);font-size:clamp(10px,1.04cqw,18px)}
 @media (min-width:900px){.game main {max-width:min(100%,calc(160svh + 16px),1920px)}}
@@ -141,6 +151,8 @@ body.touch main {padding-bottom:12px}
 .debrief-head span:last-child {text-align:right}
 #final .debrief,#ai-panel,#timeline,#stage .plate,#stage .plate .status {font-family:var(--pixel)}
 .type-reveal p,.prediction {word-break:keep-all;overflow-wrap:anywhere}
+.type-reveal .read-time {display:inline-block;color:#ffda76;font:700 1.2em/1.1 var(--pixel);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(min-width:651px){#stage > .desk{bottom:4%} #stage .red-wrap{transform:translateY(-5%)}}
 .type-reveal {padding:clamp(14px,2.8vh,28px) 0 12px}
 .type-reveal p {margin:0;color:#e4dbf2;font-size:clamp(14px,1.4vw,20px)}
 .type-reveal h1 {margin:5px 0 9px;color:#a0f4d3;font:700 clamp(31px,4.8vw,69px)/1.1 var(--pixel);letter-spacing:-.025em;text-shadow:0 4px #075b57;animation:type-land 280ms steps(5,end) both}
@@ -168,6 +180,6 @@ body.touch main {padding-bottom:12px}
 #handoff:focus-visible {outline:3px solid #fff0bb}
 @media(max-width:650px){.debrief-stats div{font-size:12px}.round-receipt li{padding:6px 2px;text-align:center}.round-receipt{gap:3px}.prediction{padding-bottom:10px}.debrief-head{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.type-reveal h1{animation:none}}
-@media(prefers-reduced-motion:reduce){#stage .bot[data-strike] .switch-art::after{display:none}}
+@media(prefers-reduced-motion:reduce){#stage .bot[data-strike] .switch-art::after,.seat[data-strike] .impact::before,.seat[data-strike] .impact::after{display:none}}
 @media(max-width:650px){.record-flag{font-size:10px;padding:2px 3px;margin-left:3px}.debrief-stats strong{line-height:1.35}.prediction small{flex-basis:100%}}
 .game .entry-start {background-color:#aa342f;color:#fff4dc}
