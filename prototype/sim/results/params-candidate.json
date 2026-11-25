@@ -1,36 +1,29 @@
 {
   "types": {
-    "instant": {
-      "noise": 67,
-      "prior": {
-        "mean": 179,
-        "sd": 80
-      }
-    },
     "fixed": {
-      "noise": 160
+      "noise": 144
     },
     "follow": {
-      "noise": 81,
+      "noise": 82,
       "prior": {
-        "mean": 362,
-        "sd": 150
-      }
-    },
-    "hold": {
-      "noise": 135,
-      "prior": {
-        "mean": 442,
-        "sd": 150
+        "mean": 384,
+        "sd": 118
       }
     }
   },
-  "lapse": 0.1068,
-  "version": "fit-20261119-p1",
+  "version": "fit-20261126-p5-fixed+follow",
   "meta": {
-    "fittedAt": "2026-11-19",
-    "people": 1,
-    "games": 10,
-    "rounds": 100
+    "fittedAt": "2026-11-26",
+    "people": 5,
+    "games": 27,
+    "rounds": 270,
+    "input": "all",
+    "only": [
+      "fixed",
+      "follow"
+    ],
+    "skipped": [
+      "mwwaggmn9mo38fbr"
+    ]
   }
 }

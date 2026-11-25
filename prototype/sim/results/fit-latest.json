@@ -1,102 +1,127 @@
 {
   "meta": {
-    "fittedAt": "2026-11-19",
-    "people": 1,
-    "games": 10,
-    "rounds": 100
+    "fittedAt": "2026-11-26",
+    "people": 5,
+    "games": 27,
+    "rounds": 270,
+    "input": "all",
+    "only": [
+      "fixed",
+      "follow"
+    ],
+    "skipped": [
+      "mwwaggmn9mo38fbr"
+    ]
   },
   "current": "default-2026-11-19-switch",
   "candidate": {
     "types": {
-      "instant": {
-        "noise": 67,
-        "prior": {
-          "mean": 179,
-          "sd": 80
-        }
-      },
       "fixed": {
-        "noise": 160
+        "noise": 144
       },
       "follow": {
-        "noise": 81,
+        "noise": 82,
         "prior": {
-          "mean": 362,
-          "sd": 150
-        }
-      },
-      "hold": {
-        "noise": 135,
-        "prior": {
-          "mean": 442,
-          "sd": 150
+          "mean": 384,
+          "sd": 118
         }
       }
     },
-    "lapse": 0.1068,
-    "version": "fit-20261119-p1"
+    "version": "fit-20261126-p5-fixed+follow"
+  },
+  "fitted": {
+    "types": {
+      "instant": {
+        "noise": 123,
+        "prior": {
+          "mean": 249,
+          "sd": 85
+        }
+      },
+      "fixed": {
+        "noise": 144
+      },
+      "follow": {
+        "noise": 82,
+        "prior": {
+          "mean": 384,
+          "sd": 118
+        }
+      },
+      "hold": {
+        "noise": 97,
+        "prior": {
+          "mean": 408,
+          "sd": 96
+        }
+      }
+    },
+    "lapse": 0.0975
   },
   "stats": {
     "instant": {
-      "people": 1,
-      "games": 2,
-      "rounds": 20,
-      "mashed": 9,
-      "used": 10,
+      "people": 4,
+      "games": 8,
+      "rounds": 80,
+      "mashed": 15,
+      "used": 57,
       "censored": 0,
       "slips": 0,
-      "outliers": 1,
-      "noiseData": 44.33574319950645,
-      "meanData": 138.20000000080717
+      "outliers": 8,
+      "noiseData": 130.6083143049381,
+      "sdData": 88.43812558649137,
+      "meanData": 256.70565475391487
     },
     "fixed": {
-      "people": 1,
-      "games": 2,
-      "rounds": 20,
+      "people": 2,
+      "games": 4,
+      "rounds": 40,
       "mashed": 2,
-      "used": 14,
+      "used": 34,
       "censored": 0,
       "slips": 0,
       "outliers": 4,
-      "noiseData": 81.99804265977204
+      "noiseData": 107.1437994190344
     },
     "follow": {
-      "people": 1,
-      "games": 2,
-      "rounds": 20,
+      "people": 3,
+      "games": 5,
+      "rounds": 50,
       "mashed": 5,
-      "used": 14,
+      "used": 43,
       "censored": 0,
       "slips": 0,
-      "outliers": 1,
-      "noiseData": 43.044431640002244,
-      "meanData": 274.94285714253783
+      "outliers": 2,
+      "noiseData": 73.03195669668281,
+      "sdData": 73.03555269375279,
+      "meanData": 362.4794709034264
     },
     "hold": {
-      "people": 1,
-      "games": 2,
-      "rounds": 20,
-      "mashed": 1,
-      "used": 16,
-      "censored": 2,
-      "slips": 2,
+      "people": 4,
+      "games": 5,
+      "rounds": 50,
+      "mashed": 2,
+      "used": 41,
+      "censored": 7,
+      "slips": 6,
       "outliers": 1,
-      "noiseData": 138.01130531509327,
-      "meanData": 434.5132069882809
+      "noiseData": 85.18457678550558,
+      "sdData": 19.660956907316788,
+      "meanData": 398.099690178951
     },
     "lapse": {
-      "k": 9,
-      "n": 63,
-      "data": 0.14285714285714285
+      "k": 21,
+      "n": 196,
+      "data": 0.10714285714285714
     }
   },
   "random": {
-    "n": 14,
+    "n": 33,
     "censored": 2,
     "bins": [
-      2,
+      13,
+      10,
       5,
-      2,
       3,
       0
     ]

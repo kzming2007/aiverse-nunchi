@@ -137,9 +137,12 @@ node prototype/sim/fit.js --selftest
 - `fit.js`: Supabase에서 수집 기록을 읽어 숫자를 맞추고 보고서만 출력합니다. 게임은 그대로예요. 후보 숫자는 `sim/results/params-candidate.json`에 저장돼요.
 - `--apply`: 맞춘 숫자를 `public/ai/params.js`에 씁니다. 커밋·배포하면 게임에 반영돼요. 되돌리려면 그 파일의 값을 `null`로 두거나 git에서 이전 버전으로 돌립니다.
 - `--selftest`: 정답을 아는 가상 데이터로, 도구가 숫자를 제대로 되찾는지 점검합니다.
-- `--people 파일`: 닉네임이 섞인 게임을 한 사람으로 묶어요. 기본은 `sim/people.json`이고, 추천 닉네임은 다른 사람과 겹칠 수 있으니 게임 id로 지정해요.
+- `--people 파일`: 수집 게임 정리 파일이에요. 기본은 `sim/people.json`이에요.
+  - `people`: 닉네임이 섞인 게임을 한 사람으로 묶어요. 추천 닉네임은 다른 사람과 겹칠 수 있으니 게임 id로 지정해요.
+  - `제외`: 게임 id와 이유를 적으면 그 게임은 숫자 맞추기에서 빼고, 검증에는 넣어요. 고른 유형과 전혀 다르게 연기한 게임 등에 써요.
 - `--save 파일` / `--file 파일`: 기록을 저장해 두고 같은 기록으로 다시 돌려요. 기록 파일은 `prototype/sim/data/`에 두고 커밋하지 않습니다.
 - `--input key|touch|all`: 키보드(부스) 기록이나 터치(휴대폰) 기록만으로 맞춰요. 기본은 all이에요. 둘이 섞여 있으면 보고서에 두 기록의 습관을 비교해 보여 줘요.
+- `--only 유형,…`: 고른 숫자만 바꾸고 나머지는 model.js 기본값으로 둬요 (예: `--only fixed,follow`). 쓸 수 있는 값은 `instant` `fixed` `follow` `hold` `lapse`(실수 비율)예요. 검증도 고른 숫자만 바꾼 상태로 해요.
 
 맞추는 방식
 
@@ -233,19 +236,19 @@ update public.nunchi_games set hidden = true where nickname = '숨길 닉네임'
 | `public/index.html` `game.js` `game.css` | 게임 화면 |
 | `public/img/` | 로봇 3종 상태별 그림, 빨간 버튼 그림 |
 | `public/ai/model.js` | 플레이어 모델: 유형 확률과 개인 숫자, 베이즈 갱신, 전략 변경 감지 (브라우저·Node 겸용) |
-| `public/ai/params.js` | 숫자 맞추기 도구가 만든 숫자 (`null`이면 model.js 기본값) |
+| `public/ai/params.js` | 숫자 맞추기 도구가 만든 숫자 (`null`이면 model.js 기본값). 11/26부터 공격형·눈치형만 수집 데이터 값 |
 | `public/ai/planner.js` | 작전 계산: 후보 생성, 공정 규칙, 포획 확률, 떠보기/공략, 판정 (브라우저·Node 겸용) |
 | `public/board.html` `board.js` `board.css` | 현황판 (랭킹 + 10판 기록 팝업) |
 | `public/db.js` | Supabase 저장·조회·실시간 연결을 한곳에 모은 파일 |
 | `public/config.js` | Supabase 주소와 공개용(publishable) 키 |
 | `public/shared.js` `shared.css` | 게임과 현황판이 같이 쓰는 타임라인·색·픽셀 상자 |
 | `sim/run.js` | 밸런스 시뮬레이터 (결과: `sim/results/latest.json`) |
-| `sim/fit.js` `sim/people.json` | 숫자 맞추기 도구와 사람 묶기 파일 (결과: `sim/results/fit-latest.json`, `params-candidate.json`) |
+| `sim/fit.js` `sim/people.json` | 숫자 맞추기 도구와 수집 게임 정리 파일: 사람 묶기, 맞추기에서 뺄 게임 (결과: `sim/results/fit-latest.json`, `params-candidate.json`) |
 | `supabase/schema.sql` | DB 테이블·함수·권한 |
 | `server.js` | 로컬 확인용 정적 파일 서버 |
 | `vercel.json` `.vercelignore` | Vercel 배포 설정 |
 
 ## 다음 단계
 
-- 팀원 수집이 모이면 `node prototype/sim/fit.js`로 숫자를 맞추고, 검증 후 `--apply`
+- 숫자는 11/26에 공격형·눈치형만 적용했어요 (`node prototype/sim/fit.js --apply --only fixed,follow`, 결과는 [docs/ai-system.md](../docs/ai-system.md) 5절). 기록이 더 쌓이면 다시 맞추고, 검증 후 적용해요
 - USB 버튼: 대부분 키보드 입력으로 인식되므로, 버튼이 보내는 키를 `CONFIG.keys`에 추가하면 됩니다

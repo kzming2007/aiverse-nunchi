@@ -7,6 +7,7 @@
 //   --people 파일   닉네임이 섞인 게임을 한 사람으로 묶는 파일 (기본: prototype/sim/people.json)
 //   --file 파일     Supabase 대신 저장해 둔 기록으로 (--save 파일 로 저장. 기록 파일은 커밋하지 않음)
 //   --input key|touch|all   키보드(부스) / 터치(휴대폰) 기록만으로 맞추기 (기본 all). 섞여 있으면 보고서에 둘을 비교해 보여 줌
+//   --only 유형,…   고른 숫자만 바꾸고 나머지는 지금 숫자 그대로 (예: --only fixed,follow). instant·fixed·follow·hold·lapse(실수 비율)
 //
 // 맞추는 숫자 (유형별, ms)
 //   습관 (prior.mean)  사람마다의 평균: 즉시형은 누른 시각, 눈치형·버티기형은 기준 AI 뒤 반응 시간
@@ -17,6 +18,7 @@
 //
 // 원칙
 //   - 연타한 판(extra_presses > 0)은 뺍니다.
+//   - people.json의 "제외"에 적은 게임(고른 유형과 전혀 다르게 연기한 게임 등)은 숫자 맞추기에서 빼고, 검증에는 넣습니다.
 //   - 시각이 안 남은 판(AI 셋이 먼저 다 누름)은 "그때까지는 안 눌렀다"로 계산합니다 (중도 절단 정규분포, EM).
 //     단, 습관보다 한참 늦은 시점까지 안 누른 판은 실수로 셉니다.
 //   - 사람마다 같은 무게로 평균을 냅니다 (한 사람이 많이 해도 쏠리지 않게).
@@ -79,8 +81,9 @@ async function loadFromSupabase() {
 }
 
 // 사람 묶기: games(게임 id)가 먼저, 그다음 nicknames. 둘 다 없으면 닉네임 그대로가 한 사람
+// 제외: { 게임 id: 이유 } — 숫자 맞추기에서 뺄 게임 (검증에는 넣음)
 function loadPeople(file) {
-  if (!file || !fs.existsSync(file)) return { byGame: new Map(), byNick: new Map() };
+  if (!file || !fs.existsSync(file)) return { byGame: new Map(), byNick: new Map(), skip: new Map() };
   const data = JSON.parse(fs.readFileSync(file, 'utf8'));
   const byGame = new Map();
   const byNick = new Map();
@@ -88,7 +91,7 @@ function loadPeople(file) {
     for (const id of v.games || []) byGame.set(id, person);
     for (const nick of v.nicknames || []) byNick.set(nick, person);
   }
-  return { byGame, byNick };
+  return { byGame, byNick, skip: new Map(Object.entries(data['제외'] || {})) };
 }
 
 // → [{ id, person, nickname, label, rounds: [{ a: [a1,a2,a3], t, extra }] }]
@@ -114,7 +117,8 @@ function normalize(raw, people) {
     const counts = {};
     for (const r of rounds) if (r.input) counts[r.input] = (counts[r.input] || 0) + 1;
     const input = Object.keys(counts).sort((x, y) => counts[y] - counts[x])[0] || 'key';
-    games.push({ id: g.id, person, nickname: g.nickname, label: g.label, input, rounds });
+    const skip = (people.skip && people.skip.get(g.id)) || null; // 맞추기에서 뺀 이유 (검증에는 씀)
+    games.push({ id: g.id, person, nickname: g.nickname, label: g.label, input, rounds, skip });
   }
   return games;
 }
@@ -176,7 +180,8 @@ function fitUnit(obs) {
 }
 
 // ───────── 유형별 숫자 맞추기 ─────────
-function fitTypes(games, { shrink = true } = {}) {
+function fitTypes(allGames, { shrink = true } = {}) {
+  const games = allGames.filter((g) => !g.skip); // people.json "제외" 게임은 맞추기에서 뺌
   const def = Model.BUILTIN_PARAMS;
   const params = { types: {} };
   const stats = {};
@@ -239,12 +244,24 @@ function fitTypes(games, { shrink = true } = {}) {
   return { params, stats };
 }
 
+// --only: 고른 숫자만 남김. 빠진 유형과 실수 비율은 게임에서 지금 숫자(기본값) 그대로
+const ONLY_KEYS = [...FIT_TYPES, 'lapse'];
+function restrict(params, only) {
+  if (!only) return params;
+  const out = { types: {} };
+  for (const k of only) {
+    if (k === 'lapse') out.lapse = params.lapse;
+    else if (params.types[k]) out.types[k] = params.types[k];
+  }
+  return out;
+}
+
 // 랜덤형은 맞추지 않고, 실제로 어느 시각에 눌렀는지만 봄 (모델은 0~5초 고르게 가정)
 function randomSummary(games) {
   const bins = [0, 0, 0, 0, 0];
   let censored = 0;
   let n = 0;
-  for (const g of games.filter((x) => x.label === 'random')) {
+  for (const g of games.filter((x) => x.label === 'random' && !x.skip)) {
     for (const r of g.rounds.filter((x) => x.extra === 0)) {
       n++;
       if (r.t === null) censored++;
@@ -313,14 +330,14 @@ function evaluate(games, params) {
 }
 
 // 한 사람씩 빼고 맞춘 뒤, 뺀 사람의 게임으로 확인 (사람 2명 이상일 때)
-function leaveOnePersonOut(games, current) {
+function leaveOnePersonOut(games, current, only) {
   const persons = [...new Set(games.filter((g) => FIT_TYPES.includes(g.label)).map((g) => g.person))];
   if (persons.length < 2) return null;
   const now = [];
   const fit = [];
   for (const p of persons) {
     const test = games.filter((g) => g.person === p);
-    const cand = Model.withParams(fitTypes(games.filter((g) => g.person !== p)).params);
+    const cand = Model.withParams(restrict(fitTypes(games.filter((g) => g.person !== p)).params, only));
     now.push({ w: test.length, e: evaluate(test, current) });
     fit.push({ w: test.length, e: evaluate(test, cand) });
   }
@@ -343,11 +360,10 @@ function leaveOnePersonOut(games, current) {
 }
 
 // ───────── 보고서 ─────────
-function typeLine(label, st, cur, cand) {
-  const c = cur.types[label];
-  const n = cand.types[label];
-  const curTxt = label === 'fixed' ? `흔들림 ${c.noise}` : `${c.prior.mean}±${c.prior.sd}, 흔들림 ${c.noise}`;
-  const newTxt = label === 'fixed' ? `흔들림 ${n.noise}` : `${n.prior.mean}±${n.prior.sd}, 흔들림 ${n.noise}`;
+function typeLine(label, st, cur, cand, fitted, applied = true) {
+  const txt = (t) => (label === 'fixed' ? `흔들림 ${t.noise}` : `${t.prior.mean}±${t.prior.sd}, 흔들림 ${t.noise}`);
+  const curTxt = txt(cur.types[label]);
+  const newTxt = applied ? txt(cand.types[label]) : `${txt(cand.types[label])} (--only에 없어 기본값 · 맞춘 값 ${txt(fitted.types[label])})`;
   const dataTxt = label === 'fixed' ? `흔들림 ${ms(st.noiseData)}` : `${ms(st.meanData)} / ${ms(st.sdData)} / ${ms(st.noiseData)}`;
   return `${NAME[label].padEnd(5)} | ${String(st.people).padStart(2)}명 ${String(st.games).padStart(2)}게임 ${String(st.used).padStart(3)}판 | 연타 ${st.mashed} · 시각 안 남음 ${st.censored} · 실수 ${
     st.slips + st.outliers
@@ -366,7 +382,7 @@ function evalLines(title, now, fit) {
   ];
 }
 
-function report(games, fitResult, current, candidate) {
+function report(games, fitResult, current, candidate, only) {
   const lines = [];
   const people = [...new Set(games.map((g) => g.person))];
   const rounds = sum(games.map((g) => g.rounds.length));
@@ -376,6 +392,11 @@ function report(games, fitResult, current, candidate) {
     const gs = games.filter((g) => g.person === p);
     const by = [...ALL_TYPES, 'free'].map((l) => [l, gs.filter((g) => g.label === l).length]).filter(([, n]) => n);
     lines.push(`  ${p}: ${gs.length}게임 (${by.map(([l, n]) => `${NAME[l]} ${n}`).join(' · ')})`);
+  }
+  const skipped = games.filter((g) => g.skip);
+  if (skipped.length) {
+    lines.push(`  숫자 맞추기에서 뺀 게임 ${skipped.length}개 (people.json "제외", 검증에는 넣음):`);
+    for (const g of skipped) lines.push(`    ${g.id} · ${g.person} · ${NAME[g.label] || g.label} — ${g.skip}`);
   }
   // 입력 방법별: 터치(휴대폰)는 화면 반응이 늦어 시각이 키보드보다 늦게 찍힐 수 있음
   const inputs = [...new Set(games.map((g) => g.input))];
@@ -393,13 +414,15 @@ function report(games, fitResult, current, candidate) {
     }
   }
   lines.push('\n■ 유형별 숫자 (ms) — 데이터: 습관 / 사람 차이 / 흔들림 · 지금 숫자 → 새 숫자(사람이 적으면 기본값 쪽으로 당김)');
+  if (only) lines.push(`  --only ${only.join(',')}: 고른 숫자만 바꾸고 나머지는 model.js 기본값`);
   for (const label of FIT_TYPES) {
     const st = fitResult.stats[label];
     if (!st.people) lines.push(`${NAME[label].padEnd(5)} | 쓸 수 있는 기록 없음 → 지금 숫자 그대로`);
-    else lines.push(typeLine(label, st, current, candidate));
+    else lines.push(typeLine(label, st, current, candidate, fitResult.params, !only || only.includes(label)));
   }
   const ls = fitResult.stats.lapse;
-  lines.push(`실수 비율: 데이터 ${ls.k}/${ls.n}판 = ${pct(ls.data)} · 지금 ${pct(current.lapse)} → 새 숫자 ${pct(candidate.lapse)}`);
+  const lapseTxt = !only || only.includes('lapse') ? `새 숫자 ${pct(candidate.lapse)}` : `${pct(candidate.lapse)} (--only에 없어 기본값 · 맞춘 값 ${pct(fitResult.params.lapse)})`;
+  lines.push(`실수 비율: 데이터 ${ls.k}/${ls.n}판 = ${pct(ls.data)} · 지금 ${pct(current.lapse)} → ${lapseTxt}`);
   const rs = randomSummary(games);
   if (rs.n) {
     lines.push(
@@ -408,17 +431,15 @@ function report(games, fitResult, current, candidate) {
   }
   lines.push('\n■ 검증: 실제 게임을 판마다 다시 돌려 보기 (지금 숫자 → 새 숫자)');
   lines.push(...evalLines('같은 기록으로 맞추고 같은 기록으로 확인 (실제보다 좋게 나옴)', evaluate(games, current), evaluate(games, candidate)));
-  const loo = leaveOnePersonOut(games, current);
+  const loo = leaveOnePersonOut(games, current, only);
   if (loo) lines.push(...evalLines(`한 사람씩 빼고 맞춘 뒤 그 사람으로 확인 (${loo.persons}명, 실제 성능에 가까움)`, loo.now, loo.fit));
   else lines.push('  한 사람씩 빼고 확인하려면 2명 이상의 기록이 필요해요.');
-  const minPeople = Math.min(...FIT_TYPES.map((l) => fitResult.stats[l].people));
+  const usedTypes = FIT_TYPES.filter((l) => !only || only.includes(l));
+  const minPeople = Math.min(...(usedTypes.length ? usedTypes : FIT_TYPES).map((l) => fitResult.stats[l].people));
   lines.push('\n■ 적용 판단');
-  if (minPeople >= 3) lines.push('  모든 유형에 3명 이상 모였어요. 검증 결과가 좋아졌다면 --apply로 적용해도 좋아요.');
-  else
-    lines.push(
-      `  유형에 따라 ${minPeople}명뿐이라, 새 숫자는 기본값 쪽으로 많이 당겨진 값이에요. 3명 이상 모이면 다시 맞추는 걸 권장해요.`,
-      '  적용 전에 밸런스 확인: SIM_PARAMS=prototype/sim/results/params-candidate.json SIM_PLAYERS=params node prototype/sim/run.js 150 1'
-    );
+  if (minPeople >= 3) lines.push(`  ${only ? '고른' : '모든'} 유형에 3명 이상 모였어요. 검증 결과가 좋아졌다면 --apply로 적용해도 좋아요.`);
+  else lines.push(`  유형에 따라 ${minPeople}명뿐이라, 새 숫자는 기본값 쪽으로 많이 당겨진 값이에요. 3명 이상 모이면 다시 맞추는 걸 권장해요.`);
+  lines.push('  적용 전에 밸런스 확인: SIM_PARAMS=prototype/sim/results/params-candidate.json SIM_PLAYERS=params node prototype/sim/run.js 150 1');
   return lines.join('\n');
 }
 
@@ -514,15 +535,19 @@ function parseArgs(argv) {
     else if (k === '--file') a.file = argv[++i];
     else if (k === '--save') a.save = argv[++i];
     else if (k === '--input') a.input = argv[++i];
+    else if (k === '--only') a.only = String(argv[++i] || '').split(',').map((s) => s.trim()).filter(Boolean);
   }
   return a;
 }
 
 function writeParamsFile(params, meta) {
   const data = { version: params.version, meta, lapse: params.lapse, types: params.types };
+  const changed = meta.only ? `${meta.only.map((k) => (k === 'lapse' ? '실수 비율' : NAME[k])).join('·')}만 (나머지는 model.js 기본값)` : '모든 유형 + 실수 비율';
+  const skipped = meta.skipped.length ? ` · 맞추기에서 뺀 게임 ${meta.skipped.length}개 (people.json "제외")` : '';
   const body = `// AI가 쓰는 숫자 — 숫자 맞추기 도구가 만드는 파일입니다. 손으로 고치지 마세요.
-//   만든 때: ${meta.fittedAt} · 수집 기록: 사람 ${meta.people}명, 게임 ${meta.games}, 판 ${meta.rounds}
-//   만들기: node prototype/sim/fit.js --apply   ·   되돌리기: 아래 값을 null로 두거나 git에서 이전 버전으로
+//   만든 때: ${meta.fittedAt} · 수집 기록: 사람 ${meta.people}명, 게임 ${meta.games}, 판 ${meta.rounds}${skipped}
+//   바꾼 숫자: ${changed}
+//   만들기: node prototype/sim/fit.js --apply${meta.only ? ` --only ${meta.only.join(',')}` : ''}   ·   되돌리기: 아래 값을 null로 두거나 git에서 이전 버전으로
 // null이면 model.js의 기본값(BUILTIN_PARAMS)을 그대로 씁니다.
 (function (root, data) {
   if (typeof module === 'object' && module.exports) module.exports = data;
@@ -546,20 +571,43 @@ async function main() {
     console.log(`수집 모드 기록이 아직 없어요${args.input && args.input !== 'all' ? ` (입력: ${INPUT_NAME[args.input] || args.input})` : ''}.`);
     return;
   }
+  if (args.only) {
+    const bad = args.only.filter((k) => !ONLY_KEYS.includes(k));
+    if (bad.length || !args.only.length) {
+      console.error(`--only 에 쓸 수 있는 값: ${ONLY_KEYS.join(', ')} (받은 값: ${bad.join(', ') || '없음'})`);
+      process.exitCode = 1;
+      return;
+    }
+  }
   const fitResult = fitTypes(games);
   const people = new Set(games.map((g) => g.person)).size;
-  const date = new Date().toISOString().slice(0, 10);
-  const candidateParams = { ...fitResult.params, version: `fit-${date.replace(/-/g, '')}-p${people}` };
+  const date = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }); // 한국 날짜 YYYY-MM-DD
+  const candidateParams = {
+    ...restrict(fitResult.params, args.only),
+    version: `fit-${date.replace(/-/g, '')}-p${people}${args.only ? `-${args.only.join('+')}` : ''}`,
+  };
   const current = Model.DEFAULT_PARAMS;
   const candidate = Model.withParams(candidateParams);
-  console.log(report(games, fitResult, current, candidate));
+  console.log(report(games, fitResult, current, candidate, args.only));
 
-  const meta = { fittedAt: date, people, games: games.length, rounds: sum(games.map((g) => g.rounds.length)), input: args.input || 'all' };
+  const meta = {
+    fittedAt: date,
+    people,
+    games: games.length,
+    rounds: sum(games.map((g) => g.rounds.length)),
+    input: args.input || 'all',
+    only: args.only || null,
+    skipped: games.filter((g) => g.skip).map((g) => g.id),
+  };
   fs.mkdirSync(RESULTS, { recursive: true });
   fs.writeFileSync(path.join(RESULTS, 'params-candidate.json'), JSON.stringify({ ...candidateParams, meta }, null, 2) + '\n');
   fs.writeFileSync(
     path.join(RESULTS, 'fit-latest.json'),
-    JSON.stringify({ meta, current: current.version, candidate: candidateParams, stats: fitResult.stats, random: randomSummary(games) }, null, 2) + '\n'
+    JSON.stringify(
+      { meta, current: current.version, candidate: candidateParams, fitted: fitResult.params, stats: fitResult.stats, random: randomSummary(games) },
+      null,
+      2
+    ) + '\n'
   );
   console.log('\n후보 숫자: prototype/sim/results/params-candidate.json');
   if (args.apply) {
@@ -571,7 +619,7 @@ async function main() {
 }
 
 // 다른 도구에서 계산만 가져다 쓸 수 있게 (node -e "require('./prototype/sim/fit.js')")
-module.exports = { normalize, loadPeople, observations, fitUnit, fitTypes, evaluate, randomSummary };
+module.exports = { normalize, loadPeople, observations, fitUnit, fitTypes, restrict, evaluate, randomSummary };
 
 if (require.main === module) {
   main().catch((e) => {
