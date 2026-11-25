@@ -60,12 +60,14 @@ const DB = (() => {
     },
 
     // ── 현황판에서 쓰는 것 ──
-    async ranking() {
-      const { data, error } = await client
+    async ranking(limit) {
+      let query = client
         .from('nunchi_ranking')
         .select('rank, game_id, nickname, total_score')
         .order('rank')
         .order('finished_at');
+      if (limit) query = query.limit(limit);
+      const { data, error } = await query;
       if (error) throw error;
       return data.map((g) => ({ rank: g.rank, gameId: g.game_id, nickname: g.nickname, totalScore: g.total_score }));
     },

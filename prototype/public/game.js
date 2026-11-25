@@ -23,8 +23,8 @@ const CONFIG = {
   collisionMs: 150, // 이 간격 안에 2명 이상 누르면 모두 탈락 (동시 입력). 11/19 0.3초 → 0.15초
   aiMinMs: 100, // AI가 누를 수 있는 가장 이른 시각. 11/19 0.3초 → 0.1초
   aiMaxMs: 4700, // AI가 누를 수 있는 가장 늦은 시각
-  countdownStepMs: 650,
-  resultMs: 3800, // 라운드 결과와 AI의 작전을 보여주는 시간
+  countdownStepMs: params.get('pace') === 'fast' ? 450 : 650,
+  resultMs: params.get('pace') === 'fast' ? 2300 : 3800, // 라운드 결과와 AI의 작전을 보여주는 시간
   restartDelayMs: 2000, // 종료 화면에서 실수로 바로 다시 시작되지 않도록 기다리는 시간
   keys: ['Space', 'Enter', 'NumpadEnter'], // 스페이스바 (+ 예비 대형 엔터키)
   ruleVersion: 'r2-w150-min100',
@@ -50,7 +50,7 @@ const TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and 
 const HIT_TOL = Model.DEFAULT_PARAMS.hitToleranceMs; // 예측 적중 기준 (±0.25초)
 const COLLISION_SEC = `${CONFIG.collisionMs / 1000}초`; // 안내 문구용 (예: "0.15초")
 
-const PLAYER = { id: 'player', name: '나' };
+const PLAYER = { id: 'player', name: '플레이어' };
 // art: public/img/bots/{art}-{idle|press|result}.webp (대기·누름·결과 그림)
 const AGENTS = [
   { id: 'ai1', name: 'ALPHA', art: 'alpha' },
@@ -64,7 +64,7 @@ const REASON_TEXT = {
   last: '가장 마지막이었어요',
   timeout: '5초 안에 누르지 못했어요',
 };
-const PHASE_TEXT = { probe: 'AI가 너를 떠보는 중', reprobe: 'AI가 다시 떠보는 중', attack: 'AI가 너를 공략하는 중', collect: '데이터 수집 중' };
+const PHASE_TEXT = { probe: 'AI가 타이밍을 탐색 중', reprobe: 'AI가 다시 떠보는 중', attack: 'AI가 타이밍을 공략 중', collect: '데이터 수집 중' };
 const COLLECT_LABELS = [...Model.TYPES.map((t) => ({ id: t.id, name: t.name })), { id: 'free', name: '자유 (평소대로)' }];
 
 const $ = (id) => document.getElementById(id);
@@ -81,9 +81,7 @@ let suggestedName = '';
 // ───────── 화면 그리기 ─────────
 // AI 자리: 이름판 + 로봇 그림 3장(대기·누름·결과 중 하나만 보임, CSS가 자리 상태로 고름)
 function botSeatHtml(s) {
-  const imgs = ['idle', 'press', 'result']
-    .map((st) => `<img class="bot-img ${st}" src="/img/bots/${s.art}-${st}.webp" alt="" draggable="false">`)
-    .join('');
+  const imgs = Flight.bot(s.art);
   return `<div class="seat bot" id="seat-${s.id}">
     <div class="plate"><span class="name">${esc(s.name)}</span><span class="status">대기 중</span></div>
     <div class="bot-art" role="img" aria-label="${esc(s.name)}">${imgs}<span class="callout"></span></div>
@@ -93,8 +91,8 @@ function botSeatHtml(s) {
 // 내 자리: 빨간 큰 버튼 + 이름판 (휴대폰에서는 버튼 대신 화면 아래 큰 버튼을 씀)
 function playerSeatHtml() {
   return `<div class="seat player" id="seat-player">
-    <div class="red-wrap"><img class="red-btn" src="/img/red-button.webp" alt="빨간 버튼" draggable="false"><span class="callout"></span></div>
-    <div class="plate"><span class="name">나 <span id="nickname" class="nick"></span></span><span class="status">대기 중</span></div>
+    <div class="red-wrap"><span class="red-btn" role="button" tabindex="0" aria-label="플레이어 버튼">${Flight.cap('red')}</span><span class="callout"></span></div>
+    <div class="plate"><span class="name">플레이어 <span id="nickname" class="nick"></span></span><span class="status">대기 중</span></div>
   </div>`;
 }
 
@@ -117,6 +115,7 @@ function setSeat(id, { cls = null, callout = null, status = null } = {}) {
 }
 
 function resetSeats() {
+  Flight.reset();
   for (const s of SEATS) setSeat(s.id, { cls: '', callout: '', status: '대기 중' });
 }
 
@@ -174,7 +173,7 @@ function beliefBarsHtml(belief, title, limit = 5) {
 // 판이 끝난 뒤 공개하는 AI의 작전
 function tacticHtml(plan, order) {
   if (plan.phase === 'collect') {
-    return '<div class="ai-tactic"><span class="ai-phase">수집 모드</span> AI는 무작위로 눌렀어요 · 빨간 점선은 AI가 예상한 네 타이밍</div>';
+    return '<div class="ai-tactic"><span class="ai-phase">수집 모드</span> AI는 무작위로 눌렀어요 · 빨간 점선은 AI의 예상 입력 구간</div>';
   }
   const parts = plan.times.map((t, i) => {
     const agent = AGENTS.find((a) => a.id === order[i]);
@@ -182,14 +181,14 @@ function tacticHtml(plan, order) {
     return `<span class="ai-move"><b>${esc(agent.name)}</b> ${fmtSec(t)}초 <span class="role role-${role}">${Planner.ROLE_NAMES[role]}</span></span>`;
   });
   const head = plan.phase === 'attack' ? '🎯 공략' : '🔍 떠보기';
-  return `<div class="ai-tactic"><span class="ai-phase">${head}</span> AI의 작전 ${parts.join('')}<span class="ai-legend">빨간 점선 = AI가 예상한 네 타이밍</span></div>`;
+  return `<div class="ai-tactic"><span class="ai-phase">${head}</span> AI의 작전 ${parts.join('')}<span class="ai-legend">빨간 점선 = AI의 예상 입력 구간</span></div>`;
 }
 
 function rulesHtml() {
   return `<div class="rules">
     <div>⏱ 시작 신호 후 5초 안에 한 번 누르기</div>
     <div>💥 ${COLLISION_SEC} 안에 같이 누르거나 가장 마지막이면 탈락</div>
-    <div>🤖 AI는 네가 누르는 걸 보지 못해. 판마다 작전을 미리 정하고, 너를 읽어 가</div>
+    <div>🤖 AI는 판이 시작되기 전에 이전 기록으로 작전을 정해요</div>
     <div>⭐ 살아남으면 100점 + AI가 잡을 거라 확신한 만큼 보너스 (최대 200점)</div>
   </div>`;
 }
@@ -197,6 +196,7 @@ function rulesHtml() {
 // 닉네임 입력 화면 (뒤에는 규칙이 보이는 대기 화면)
 function showEntry() {
   state = 'nickname';
+  refreshMusic();
   game = null;
   updateHud();
   resetSeats();
@@ -204,7 +204,7 @@ function showEntry() {
   hideAiPanel();
   $('timeline').innerHTML = rulesHtml();
   $('final').classList.add('hidden');
-  showBig('AI 눈치게임', `AI 3명과 ${CONFIG.totalRounds}판`, 'title');
+  showBig('AI 눈치게임', `5초 안에 한 번. 겹치거나 마지막이면 탈락!`, 'title');
 
   suggestedName = makeNickname();
   $('entry-name').value = '';
@@ -216,8 +216,9 @@ function showEntry() {
     $('entry-collect-hint').classList.remove('need');
   }
   $('entry').classList.remove('hidden');
+  $('stage').dataset.phase = 'entry';
   setTap('wait', '준비…');
-  if (!TOUCH) $('entry-name').focus(); // 휴대폰에서는 자판이 바로 올라와 화면을 가리지 않게, 직접 누를 때만
+  if (!TOUCH) (MODE === 'collect' ? $('entry-name') : document.querySelector('.entry-start')).focus({preventScroll:true}); // 휴대폰에서는 자판이 바로 올라와 화면을 가리지 않게, 직접 누를 때만
 }
 
 // 수집 모드 가명: 이 기기(브라우저)에 기억해 두고 다음 게임에 채움
@@ -277,6 +278,7 @@ function makePlan() {
 async function nextRound() {
   game.round++;
   state = 'countdown';
+  refreshMusic();
   extraKeys = 0;
   updateHud();
   resetSeats();
@@ -303,7 +305,8 @@ function startRound(plan) {
 
   round = { plan, order, start: performance.now(), aiTimes, presses: {}, count: 0, timer: null, input: null };
   state = 'playing';
-  showBig('시작!', TOUCH ? '원하는 타이밍에 아래 버튼' : '원하는 타이밍에 스페이스바');
+  $('stage').dataset.phase = 'live';
+  showBig('시작!', '');
   setTap('live', '누르기!');
   beep(880, 0.15);
   round.timer = setInterval(tick, 16);
@@ -368,7 +371,13 @@ function registerPress(id, time) {
   round.count++;
   round.presses[id] = time;
   setSeat(id, { cls: 'pressed', callout: `${round.count}!`, status: `${fmtSec(time)}초` });
-  beep(520 + round.count * 110, 0.09, id === 'player' ? 'square' : 'sine');
+  const caller = id === 'player' ? '플레이어' : AGENTS.find(agent => agent.id === id).name;
+  const together = Flight.pressed(id, round.presses, CONFIG.collisionMs, caller);
+  flightSound(id);
+  if (together) {
+    flightSound('clash');
+    beep(118, 0.13, 'triangle', 0.19, 53);
+  }
   checkCaught();
 }
 
@@ -376,6 +385,7 @@ const probsObject = (probs) => Object.fromEntries(Model.TYPES.map((t, k) => [t.i
 
 function endRound() {
   state = 'result';
+  $('stage').dataset.phase = 'result';
   setTap('hide', ''); // 결과를 보는 동안은 버튼을 내려서 아래 'AI의 판단'을 가리지 않게
   const plan = round.plan;
   const caught = round.endedBy === 'caught';
@@ -417,14 +427,15 @@ function endRound() {
   const catchText = `AI 포획 예상 ${pct(pCatch)}`;
   if (me.out) {
     showBig(me.reason === 'collision' ? '잡혔다!' : '탈락!', `${REASON_TEXT[me.reason]} · ${catchText}`, 'bad');
-    beep(160, 0.35, 'sawtooth');
+    if (me.reason !== 'collision') beep(160, 0.16, 'triangle', 0.07);
   } else {
-    showBig(`생존 +${score}`, `${fmtSec(me.time)}초 · ${catchText} → 보너스 +${score - 100}`, 'good');
+    const escape = predictionHit ? '예측 범위 안에서 생존' : '생존';
+    showBig(`생존 +${score}`, `${escape} · ${fmtSec(me.time)}초 · 보너스 +${score - 100}`, 'good');
     beep(1046, 0.12);
     setTimeout(() => beep(1318, 0.16), 110);
   }
   const switchHtml = updated.switched
-    ? '<div class="ai-switch">🔄 전략을 바꿨네? <small>AI가 예전 습관은 버리고, 최근 2판만 보고 너를 다시 읽기 시작했어요</small></div>'
+    ? '<div class="ai-switch">🔄 입력 패턴 변화 <small>최근 두 판을 기준으로 AI가 예측을 다시 시작했어요</small></div>'
     : '';
   // 수집 모드: 연타한 판은 학습에서 빠지므로 바로 알려 줌 (가운데 + 아래 패널)
   if (MODE === 'collect' && extraKeys > 0) warn(`⚠️ 이번 판은 연타로 학습에서 빠져요 (${extraKeys}번 더 누름)`, CONFIG.resultMs);
@@ -432,7 +443,7 @@ function endRound() {
     MODE === 'collect' && extraKeys > 0
       ? `<div class="ai-warn">⚠️ 이번 판은 ${extraKeys}번 더 눌러서 학습에서 빠져요 <small>'시작!' 뒤에 한 판에 한 번만 눌러 주세요</small></div>`
       : '';
-  showAiPanel(mashHtml + switchHtml + tacticHtml(plan, round.order) + beliefBarsHtml(game.belief, 'AI의 판단 (이번 판까지 본 너)'));
+  showAiPanel(mashHtml + switchHtml + tacticHtml(plan, round.order) + beliefBarsHtml(game.belief, '이번 판까지 AI가 본 플레이 유형'));
 
   const record = {
     gameId: game.gameId,
@@ -467,62 +478,62 @@ function endRound() {
 
 async function finishGame() {
   state = 'final';
+  refreshMusic();
   acceptRestartAt = performance.now() + CONFIG.restartDelayMs;
   hideAiPanel();
 
   const survived = game.rounds.filter((r) => r.survived).length;
-  // '읽힌 정도'는 떠보기가 끝난 뒤(4판부터) 판들로 계산
-  const probeRounds = Planner.DEFAULTS.probeRounds;
-  const scored = game.rounds.filter((r) => r.hitProb !== null && (r.round > probeRounds || CONFIG.totalRounds <= probeRounds));
-  const readPct = scored.length ? scored.reduce((s, r) => s + r.hitProb, 0) / scored.length : null;
-  const hits = scored.filter((r) => r.predictionHit).length;
-  const baseline = (2 * HIT_TOL) / CONFIG.roundMs;
+  const observed = CONFIG.totalRounds > Planner.DEFAULTS.probeRounds ? Planner.DEFAULTS.probeRounds : 0;
+  const forecastRounds = game.rounds.filter(r => r.round > observed);
+  const eligible = forecastRounds.filter(r => r.predictionHit !== null);
+  const missing = forecastRounds.length - eligible.length;
+  const scope = [observed && `첫 ${observed}판 ${MODE === 'collect' ? '집계 제외' : '관찰'}`, missing && `비교할 입력 없는 ${missing}판 제외`].filter(Boolean).join(' · ');
+  const hits = eligible.filter(r => r.predictionHit).length;
   const style = Model.describe(game.belief);
-  const styleSentence = style.readable
-    ? `AI는 너의 <b>${esc(style.text)}</b>을 읽었어요`
-    : `타이밍이 들쭉날쭉해서 AI가 너를 잘 읽지 못했어요`;
-  const labelName = game.label ? COLLECT_LABELS.find((l) => l.id === game.label)?.name : null;
-  const switchText = game.switchRounds.length ? ` · 전략 변경 감지 <b>${game.switchRounds.map((r) => `${r}판`).join(', ')}</b>` : '';
-  const cleanRounds = game.rounds.filter((r) => r.extra === 0).length;
-  const collectText = MODE === 'collect' ? `<br>학습에 쓰이는 판 <b>${cleanRounds}/${game.rounds.length}</b> <small>(연타한 판 제외)</small>` : '';
-
-  const chips = game.rounds
-    .map(
-      (r) =>
-        `<div class="${r.survived ? 'ok' : 'ko'}">R${r.round}<br>${r.time === null ? '안 누름' : `${fmtSec(r.time)}s`}<br>${
-          r.survived ? `+${r.score}` : REASON[r.reason]
-        }<small>AI ${pct(r.pCatch)}</small></div>`
-    )
-    .join('');
-
-  $('final').innerHTML = `<div class="final-card">
-    <div class="final-title">게임 끝!${MODE === 'collect' ? ' (데이터 수집 모드)' : MODE === 'test' ? ' (연습)' : ''}</div>
-    <div class="final-nick">${esc(game.nickname)}</div>
-    <div class="final-score">${game.totalScore}<span>점</span></div>
-    <div class="final-meta">생존 <b>${survived}/${game.rounds.length}</b> · <span id="rank">순위 계산 중…</span>${collectText}</div>
-    <div class="final-style">
-      <div class="final-style-head">AI가 추정한 플레이 스타일 <b>${esc(style.name)} ${pct(style.prob)}</b>${labelName ? ` · 연기한 유형 <b>${esc(labelName)}</b>` : ''}</div>
-      <div class="final-style-text">${styleSentence}</div>
-      <div class="final-read">AI에게 읽힌 정도 <b>${pct(readPct)}</b> <small>(무작위로 찍으면 ${pct(baseline)})</small> · AI 예측 적중 <b>${hits}/${scored.length}</b>판${switchText}</div>
-      ${beliefBarsHtml(game.belief, '', 3)}
-      <div class="final-legend">
-        <span><b>유형 확률</b> AI가 보는 너의 플레이 스타일</span>
-        <span><b>AI 포획 예상</b> 판 시작 전에 AI가 계산한 '잡을 확률' (점수 보너스)</span>
-        <span><b>읽힌 정도</b> 실제로 누른 시각 근처(±0.25초)에 AI가 걸었던 확률</span>
-      </div>
-    </div>
-    <div class="final-rounds">${chips}</div>
-    <div class="final-hint">${TOUCH ? '화면을 누르면 처음 화면으로' : '스페이스바를 누르면 다음 사람 차례'}</div>
-  </div>`;
+  const [first, second] = Model.ranking(game.belief);
+  const hasInput = game.rounds.some(r => r.time !== null);
+  const close = first.prob - second.prob < 0.12;
+  const type = !hasInput ? '입력 기록 없음' : close ? first.name + ' / ' + second.name : style.name;
+  const behavior = !hasInput ? '버튼 입력이 없어 유형을 비교하기 어려워요.'
+    : close ? '이번 기록에는 두 유형의 특징이 비슷하게 나타났어요.'
+    : style.readable ? style.text.replace(/ 습관$/, ' 편이에요.') : '누르는 시각이 판마다 달랐어요.';
+  const summary = !eligible.length ? '비교할 입력이 없어요.'
+    : !hits ? 'AI의 예상 구간을 모두 피했어요!'
+    : hits === eligible.length ? '이번에는 AI가 매번 타이밍을 읽었어요.'
+    : 'AI의 타이밍 예측';
+  const modeLabel = MODE === 'collect' ? '수집' : MODE === 'test' ? '연습' : '';
+  const collectText = MODE === 'collect' ? `<p>수집 유형 ${esc(COLLECT_LABELS.find(l => l.id === game.label)?.name)} · 연타 없이 완료 ${game.rounds.filter(r => r.extra === 0).length}판</p>` : '';
+  const chips = game.rounds.map(r => {
+    const outcome = r.survived ? '+' + r.score : REASON[r.reason];
+    const timing = r.time === null ? '미입력' : fmtSec(r.time) + '초';
+    return `<li class="${r.survived ? 'safe' : 'out'}"><small>${r.round}판</small>
+      <strong>${outcome}</strong><span>${timing}</span></li>`;
+  }).join('');
+  $('final').innerHTML = `<section class="final-card debrief">
+    <header class="debrief-head"><span>${esc(game.nickname)}</span><b>AI 눈치게임</b><span>${modeLabel} ${game.rounds.length}판 종료</span></header>
+    <div class="type-reveal"><p>AI가 본 이번 플레이</p><h1>${esc(type)}</h1><p>${esc(behavior)}</p></div>
+    <div class="prediction"><span>${summary}</span>${eligible.length ? `<b>${eligible.length}판 중 ${hits}판 적중</b>` : ''}${scope ? `<small>${scope}</small>` : ''}</div>
+    <div class="debrief-stats"><div>총점<strong>${game.totalScore}<small>점</small><span class="record-flag" hidden>NEW</span></strong></div>
+      <div>생존<strong>${survived}<small> / ${game.rounds.length}판</small></strong></div>
+      <div>${modeLabel ? '모드' : '누적 순위'}<strong id="rank">${modeLabel || '집계 중'}</strong></div></div>
+    <ol class="round-receipt" aria-label="라운드별 결과">${chips}</ol>
+    ${collectText}<button type="button" id="handoff">버튼을 누르면 다음 사람 차례&nbsp; →</button>
+  </section>`;
+  const rankEl = $('rank');
+  $('handoff').addEventListener('click', () => onPress(performance.now(), 'mouse'));
   $('final').classList.remove('hidden');
-
   const { gameId } = game;
   const rank = await save(() => DB.finishGame(gameId)).catch(() => null);
-  const rankEl = $('rank');
-  if (!rankEl) return;
-  if (MODE === 'collect') rankEl.textContent = '수집 모드라 랭킹에는 안 올라가요';
-  else if (MODE === 'test') rankEl.textContent = `${TEST_REASON}라 랭킹에는 안 올라가요`;
-  else rankEl.innerHTML = rank ? `오늘 <b>${rank}위</b>` : '기록을 저장하지 못했어요';
+  if (modeLabel || game?.gameId !== gameId || !rankEl.isConnected) return;
+  rankEl.textContent = rank ? rank + '위' : '미집계';
+  if (rank >= 1 && rank <= 3) rankEl.dataset.place = String(rank);
+  if (Number(rank) !== 1 || !game.totalScore) return;
+  // The finish RPC also returns 1 for ties. Only celebrate a confirmed outright lead.
+  const leaders = await DB.ranking(2).catch(() => []);
+  if (game?.gameId === gameId && rankEl.isConnected && leaders[0]?.gameId === gameId &&
+      (!leaders[1] || leaders[0].totalScore > leaders[1].totalScore)) {
+    rankEl.closest('.debrief').querySelector('.record-flag').hidden = false;
+  }
 }
 
 // ───────── 입력 ─────────
@@ -543,6 +554,13 @@ function onPress(now, input) {
 }
 
 addEventListener('keydown', (e) => {
+  if (e.target.closest?.('#sound-toggle,#music-toggle')) return;
+  if (state === 'nickname' && MODE !== 'collect' && CONFIG.keys.includes(e.code) &&
+      document.activeElement !== $('entry-name') && document.activeElement !== $('entry-label')) {
+    e.preventDefault();
+    if (!e.repeat) $('entry-form').requestSubmit();
+    return;
+  }
   if (state === 'nickname') {
     // 닉네임에는 띄어쓰기도 들어가야 하므로, 입력 중에는 스페이스바를 게임 키로 쓰지 않습니다
     if (document.activeElement !== $('entry-name') && document.activeElement !== $('entry-label')) $('entry-name').focus();
@@ -561,11 +579,6 @@ $('tap').addEventListener('pointerdown', (e) => {
   unlockAudio();
   onPress(eventTime(e), e.pointerType === 'mouse' ? 'mouse' : 'touch');
 });
-// 휴대폰 종료 화면은 아무 데나 눌러 처음 화면으로
-$('final').addEventListener('pointerdown', (e) => {
-  if (TOUCH && state === 'final') onPress(eventTime(e), 'touch');
-});
-
 // 큰 버튼 모양: wait(준비·대기) / live(지금 누르기) / done(이번 판 누름)
 function setTap(mode, label) {
   $('tap').className = `tap-btn ${mode}`;
@@ -616,7 +629,59 @@ function setConn(ok) {
 
 // ───────── 소리 (파일 없이 브라우저에서 생성) ─────────
 let audioCtx = null;
+let soundEnabled = false;
+let musicEnabled = false;
+let musicTimer = null;
+function refreshMusic() {
+  clearInterval(musicTimer);
+  if (!soundEnabled || !musicEnabled || !['nickname', 'final'].includes(state)) return;
+  // A short original lobby motif leaves the timed round entirely to the switches.
+  const notes = [196, 0, 294, 330, 0, 247, 0, 0];
+  let step = 0;
+  musicTimer = setInterval(() => {
+    const note = notes[step++ % notes.length];
+    if (note && !document.hidden) beep(note, 0.095, 'triangle', 0.033);
+  }, 240);
+}
+$('music-toggle').addEventListener('click', () => {
+  musicEnabled = !musicEnabled;
+  $('music-toggle').setAttribute('aria-pressed', String(musicEnabled));
+  $('music-toggle').textContent = musicEnabled ? '배경음 켜짐' : '배경음 꺼짐';
+  refreshMusic();
+  $('music-toggle').blur();
+});
+const sounds = new Map();
+const audioFiles = { ai1:'strike0', ai2:'strike1', ai3:'strike2', player:'strike3', clash:'clash' };
+function flightSound(id) {
+  if (!soundEnabled) return;
+  const sample = sounds.get(id);
+  if (!sample) return;
+  sample.currentTime = 0;
+  sample.play().catch(() => {});
+}
+$('sound-toggle').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  $('music-toggle').hidden = !soundEnabled;
+  $('sound-toggle').setAttribute('aria-pressed', String(soundEnabled));
+  $('sound-toggle').textContent = soundEnabled ? '소리 켜짐' : '소리 꺼짐';
+  if (!soundEnabled) {
+    for (const sample of sounds.values()) sample.pause();
+    if (audioCtx?.state === 'running') audioCtx.suspend();
+  } else {
+    for (const [id, file] of Object.entries(audioFiles)) {
+      if (sounds.has(id)) continue;
+      const sample = new Audio('/flight/' + file + '.wav');
+      sample.volume = id === 'player' ? 0.75 : 0.44;
+      sample.preload = 'auto';
+      sounds.set(id, sample);
+    }
+    unlockAudio();
+  }
+  refreshMusic();
+  $('sound-toggle').blur();
+});
 function unlockAudio() {
+  if (!soundEnabled) return;
   if (!audioCtx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (AC) audioCtx = new AC();
@@ -624,13 +689,14 @@ function unlockAudio() {
   if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 }
 
-function beep(freq, dur = 0.1, type = 'sine', vol = 0.12) {
-  if (!audioCtx) return;
+function beep(freq, dur = 0.1, type = 'sine', vol = 0.12, endFreq = freq) {
+  if (!soundEnabled || !audioCtx) return;
   const t = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = type;
-  osc.frequency.value = freq;
+  osc.frequency.setValueAtTime(freq, t);
+  osc.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   osc.connect(gain).connect(audioCtx.destination);
@@ -670,6 +736,7 @@ document.body.classList.toggle('touch', TOUCH);
 document.body.classList.toggle('collect', MODE === 'collect'); // 연타 경고 줄은 수집 모드에만
 if (TOUCH) document.querySelector('.entry-start').textContent = '시작하기';
 buildSeats();
+if (TOUCH) document.querySelector('#seat-player .red-wrap').append($('tap'));
 showEntry();
 checkServer();
 setInterval(checkServer, 15000);
