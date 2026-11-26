@@ -1,0 +1,263 @@
+/* 조종석 장면 · 누르는 애니메이션 · 종료 화면 (11/27, P12 → C12)
+   위쪽은 팀원 브랜치 feat/arcade-booth-results 의 flight.css 를 그대로 옮긴 것입니다 (커밋 cc7b4c5).
+   - 장면은 16:9 조종석 그림(public/flight/bridge.webp) 위에 비율(%, cqw)로 배치. 장면 너비 1200px 이상이면 바닥과 둥근 탁자를 겹침
+   - 휴대폰(650px 이하)은 세로 그림(bridge-mobile.webp, 4:5)
+   - 로봇 그림과 누르는 연출은 public/flight/ 와 flight.js
+   뺀 것: 시작 화면을 장면 아래 한 줄로 두는 규칙 (닉네임 입력은 예전처럼 가운데 창)
+   맨 아래 "우리 쪽에서 더한 것": 장면이 그림 비율을 지키게, 수집 모드 경고 자리, 종료 화면의 판 자세히·마지막 판 보정 줄 */
+@font-face {font-family:Galmuri11;src:url('/flight/font/Galmuri11.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face {font-family:Galmuri11;src:url('/flight/font/Galmuri11-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+html {scrollbar-gutter:stable}
+body.game {background:#0d1025;color:#f9edcf;}
+.game .stars {display:none}
+.game .topbar {background:#10152d;border-bottom:1px solid #373552;font-size:13px}
+#sound-toggle,#music-toggle {font:inherit;color:#eee5fc;padding:3px 8px;margin-right:6px;background:#201e35;border:1px solid #746c8b;cursor:pointer}
+.game .conn.ok::before {box-shadow:none}
+.game main {width:100%;max-width:min(1580px,calc(144svh + 12px));padding:8px 14px 15px;gap:8px}
+.game #stage {container-type:inline-size;display:block;width:100%;aspect-ratio:16/9;padding:0;background:#202447 url('/flight/bridge.webp') center / 100% 100% no-repeat;border:0;box-shadow:none;clip-path:none;isolation:isolate}
+#stage::before,#stage::after,#stage .stage-sky,#stage .desk::before,#stage .desk::after,#stage .player-row::before,#stage .player-row::after {display:none}
+#stage > .sign {position:absolute;top:1.5%;width:100%;height:10%;min-height:0;padding:0;display:grid;grid-template-columns:22% 56% 22%;align-items:center;gap:0;background:none;box-shadow:none;clip-path:none;pointer-events:none}
+#stage .sign-main {height:100%;justify-content:center}
+#stage .big {font-size:clamp(18px,3.6cqw,60px);letter-spacing:.045em;line-height:1;max-width:100%;text-shadow:0 .055em #141529}
+#stage .sub {display:none}
+#stage[data-phase="result"] .sub,#stage[data-phase="ready"] .sub,#stage[data-phase="entry"] .sub {display:block;position:absolute;top:190%;left:4%;right:4%;margin:0;font:600 clamp(12px,1.12cqw,19px)/1.25 var(--pixel);color:#f4e7d0;text-shadow:0 2px 3px #16152e}
+#stage .sign-side {font:700 clamp(10px,1.06cqw,18px)/1.16 var(--pixel);color:#ece5ff;text-shadow:2px 2px #17142b}
+#stage .sign-side b {display:inline;font:inherit;color:#ffdc97;margin:0 0 0 .55em}
+#stage > .timebar {position:absolute;top:15.3%;left:32%;width:36%;height:3.1%;padding:max(1px,.24cqw);margin:0;box-shadow:inset 0 0 0 max(1px,.15cqw) #69e6ce;background:#152134}
+#stage #timefill {box-shadow:none;background:#77f0cf}
+#stage > .ai-seats {position:absolute;inset:auto 0 30% 0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 10%;width:100%;margin:0;gap:0;pointer-events:none}
+#stage .ai-seats > .seat {position:relative;width:25%;transform:none;display:block}
+#stage .bot-art {width:100%;aspect-ratio:1;isolation:isolate;filter:none;animation:none;overflow:visible}
+#stage .bot .plate {position:absolute;bottom:101%;inset-inline:-10%;gap:0;text-align:center;pointer-events:none}
+#stage .plate .name {font:700 clamp(10px,1.36cqw,24px)/1.15 var(--pixel);letter-spacing:.065em;color:#fcf0d6;text-shadow:1px 2px #1a192d}
+#stage .bot .plate .name {font-size:clamp(14px,2.12cqw,41px);line-height:1.08}
+#stage .plate .status {font-size:clamp(10px,.91cqw,16px);min-height:0;line-height:1.25;color:#fff0df;text-shadow:1px 1px 2px #151124, -1px -1px 3px #151124}
+#stage .bot:not(.pressed):not(.out) .status {visibility:hidden}
+#stage .figure {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}
+.figure.ready,.figure.body,.figure.result,.figure.rear {z-index:1}
+.figure.body,.figure.result,.figure.stroke {visibility:hidden}
+#stage .bot[data-strike] .figure.ready {visibility:hidden}
+#stage[data-phase="result"] .bot:is(.safe,.out) .figure:is(.stroke,.ready,.body) {visibility:hidden}
+#stage[data-phase="result"] .bot:is(.safe,.out) .figure.result {visibility:visible}
+.figure.stroke {background-position:left center;background-size:700% 100%;background-repeat:no-repeat}
+/* Both copies use the same frame. Only the striking fingers can cover the button. */
+.figure.fingers {z-index:4;clip-path:inset(73% 44% 8% 22%)}
+#stage .bot[data-strike] .figure.stroke {visibility:visible;animation:arm-stroke 250ms both}
+@keyframes arm-stroke {0% {background-position:0% 50%;animation-timing-function:steps(6,end)} 24%,50% {background-position:100% 50%;animation-timing-function:steps(6,end)} 94%,100% {background-position:0% 50%}}
+#stage:is([data-phase="ready"],[data-phase="entry"]) .bot .figure.ready {animation:breathe 3.3s steps(2,end) infinite;animation-delay:var(--breath-delay,0s)}
+#stage .bot:nth-child(2) {--breath-delay:-1.4s}
+#stage .bot:nth-child(3) {--breath-delay:-2.2s}
+@keyframes breathe {0%,100% {transform:none} 50% {transform:translateY(-2px)}}
+.switch-art {display:block;position:relative;width:100%;aspect-ratio:100/57;isolation:isolate}
+.switch-art::before {content:'';position:absolute;z-index:-1;left:4%;right:4%;bottom:-1%;height:30%;border-radius:50%;background:#381d40;opacity:.65}
+.switch-art img {position:absolute;display:block;pointer-events:none;user-select:none}
+.socket,.lip {width:100%;height:74%;left:0;bottom:0}
+.socket {z-index:1}
+.cap {width:73%;height:71%;left:13.5%;bottom:24%;z-index:2;will-change:transform}
+.lip {z-index:3}
+.bot-art .switch-art {position:absolute;z-index:2;width:48%;height:22%;left:26%;bottom:2%}
+#seat-ai2 .cap {height:auto;bottom:29%;image-rendering:pixelated;--cap-travel:34%}
+.seat[data-strike] .cap {animation:cap-stroke 250ms both}
+@keyframes cap-stroke {0% {transform:none;animation-timing-function:steps(6,end)} 14%,49% {transform:translateY(23%);animation-timing-function:steps(6,end)} 87%,100% {transform:none}}
+.bot[data-strike] .cap {animation-name:cap-contact}
+@keyframes cap-contact {0%,12% {transform:none;animation-timing-function:steps(3,end)} 24%,50% {transform:translateY(var(--cap-travel,23%));animation-timing-function:steps(5,end)} 88%,100% {transform:none}}
+#stage .bot[data-strike] .switch-art::after {content:'';position:absolute;z-index:5;left:27%;top:24%;width:4%;height:7%;background:#fff6d6;box-shadow:-.65cqw -.18cqw 0 var(--lamp),.26cqw -.52cqw 0 var(--lamp);pointer-events:none;animation:knuckle-contact 250ms steps(2,end) both}
+@keyframes knuckle-contact {0%,16%,47%,100% {opacity:0} 24%,34% {opacity:1;transform:translateY(-2px)}}
+#stage .callout {z-index:6;top:2%;left:-17%;width:39%;height:auto;aspect-ratio:1;display:grid;padding:0 0 .07em;font:700 clamp(18px,3.1cqw,56px)/1 var(--pixel);color:#27213d;background:#fff0c2;transition:none}
+#stage .seat.pressed .callout {transform:none;opacity:1}
+#stage .seat[data-together] .callout {background:#ff9b77;color:#261735}
+#stage .seat.pressed.out:not([data-together]) .callout {background:#e3c5ca}
+#stage .seat[data-strike] .callout {animation:shout 140ms ease-out both}
+@keyframes shout {0% {transform:scale(.78)} 50% {transform:scale(1.09)} 100% {transform:none}}
+#stage > .desk {position:absolute;inset:70% 0 1%;width:auto;background:none;margin:0;padding:0;pointer-events:none}
+#stage .player-row {position:static;width:100%;height:100%;padding:0;margin:0;display:grid;grid-template-columns:100%;grid-template-rows:100%;justify-content:stretch;place-items:center}
+#stage .seat.player {position:static;display:contents}
+#stage .red-wrap {display:block;width:26%;position:relative;margin:0;align-self:end;pointer-events:auto}
+#stage .red-btn {display:block;width:100%;filter:none;transform:none;cursor:pointer;touch-action:manipulation;outline-offset:2px}
+#stage .red-btn:focus-visible {outline:3px solid #fbe691}
+#stage #tap {position:absolute;inset:0;z-index:8;display:block;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;outline:0;background:transparent;box-shadow:none;filter:none;transform:none;color:transparent;font-size:0;opacity:1;pointer-events:auto}
+#stage #tap.hide {display:none}
+body.touch main {padding-bottom:12px}
+#stage .seat.player .plate {position:absolute;z-index:7;top:88%;left:50%;transform:translateX(-50%);width:max-content;max-width:110%;flex-direction:column;align-items:center;gap:clamp(4px,.42cqw,8px);margin:0;padding:0;background:none;box-shadow:none;pointer-events:none}
+#stage .seat.player .plate > span {text-shadow:-1px -1px #241828,1px -1px #241828,-1px 1px #241828,1px 2px #241828}
+#stage .player .plate .nick {color:var(--orange);margin:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;letter-spacing:1px;line-height:1.05}
+#stage .player .nick:empty {display:none}
+#stage .player .callout {left:-20%;top:1%;width:31%}
+#stage .warn {position:absolute;z-index:9}
+.game .keyhint {display:none}
+.game .topbar b {color:#ffe0a4}
+@media (max-width:650px){
+  .game main {max-width:none;padding:6px;gap:6px}
+  .game #stage {aspect-ratio:4/5;background-image:url('/flight/bridge-mobile.webp')}
+  #stage .sign-side {font-size:10px} #stage .sign-side b {display:block;margin:1px 0}
+  #stage .big {font-size:clamp(18px,5.2cqw,30px)}
+  #stage .sign-side {transform:translateY(66%);font-size:11px}
+  #stage > .ai-seats {padding:0 3%;bottom:30%}
+  #stage .ai-seats > .seat {width:31%}
+  #stage .bot .plate {bottom:99%}
+  #stage .bot .plate .name {font-size:clamp(14px,4.1cqw,24px)}
+  #stage .bot .plate .status {font-size:9px}
+  #stage .callout {left:-3%;top:-1%}
+  #stage .red-wrap {width:47%;align-self:center;transform:translateY(-21px)}
+  #stage .player .plate .nick {font-size:14px}
+  #stage .seat.player .plate .status {font-size:11px}
+  .game .topbar {font-size:11px;flex-wrap:wrap} #sound-toggle {margin-right:4px}
+}
+@media(prefers-reduced-motion:reduce){
+  #stage *,#stage *::before {animation:none!important;transition:none!important}
+  #stage .seat[data-strike] .cap {transform:translateY(var(--cap-travel,23%))}
+  #stage .bot[data-strike] .figure.body {visibility:visible}
+  #stage .bot .figure.rear {display:none}
+  #stage .bot[data-strike] .figure.stroke {background-position:100% 50%}
+}
+
+/* The lamp is seen under the cap at contact, in the seat's own color. */
+#stage {--lamp:#ffb092}
+#seat-ai1 {--lamp:#75ffdc}
+#seat-ai2 {--lamp:#ffd167}
+#seat-ai3 {--lamp:#d6a1ff}
+/* The socket masks the back of both wave fronts. The leading arc advances
+   farther toward the viewer; the bright second arc follows the rim. */
+.impact {position:absolute;inset:38% -7% -7%;z-index:0;pointer-events:none}
+.impact::before,.impact::after {content:'';position:absolute;inset:0;opacity:0;background:var(--lamp);
+  mask:url('/flight/pulse.svg') center / 100% 100% no-repeat;transform-origin:50% 48%}
+.seat[data-strike] .impact::before {animation:shock-front 245ms steps(6,end) both}
+.seat[data-strike] .impact::after {background:#fff1c2;animation:shock-echo 185ms 48ms steps(5,end) both}
+@keyframes shock-front {
+  0%,8% {opacity:0;transform:scale(1)}
+  14% {opacity:1;transform:scale(1.02)}
+  62% {opacity:1;transform:translateY(9%) scale(1.36,1.24)}
+  100% {opacity:0;transform:translateY(16%) scale(1.54,1.45)}
+}
+@keyframes shock-echo {
+  0% {opacity:0;transform:scale(1)}
+  14%,36% {opacity:.94;transform:scale(1.04)}
+  100% {opacity:0;transform:translateY(9%) scale(1.31,1.26)}
+}
+#stage .seat[data-strike] .cap {filter:brightness(1.18)}
+#stage .seat[data-together] .callout {background:#ffab86;outline:2px solid #ffcd91}
+#stage .sign-side b {font-size:clamp(21px,2.65cqw,46px);font-variant-numeric:tabular-nums}
+#stage .sign-side small {font-size:.62em}
+#stage .player .plate .status {font-family:var(--pixel);line-height:1.12}
+@media (min-width:900px){.game main {max-width:min(100%,calc(160svh + 16px),1920px)}}
+#final:not(.hidden){overflow:auto;align-items:flex-start}
+#final .debrief {margin:auto;width:min(760px,100%);padding:clamp(16px,3vw,32px);text-align:left;background:#1b1939;color:#fff0cf}
+.debrief-head {display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;border-bottom:2px solid #545072;padding-bottom:10px;color:#e5d9f4;font:700 14px var(--pixel)}
+.debrief-head span:first-child {overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.debrief-head b {color:#ffe6a9}
+.debrief-head span:last-child {text-align:right}
+#final .debrief,#ai-panel,#timeline,#stage .plate,#stage .plate .status {font-family:var(--pixel)}
+.type-reveal p,.prediction {word-break:keep-all;overflow-wrap:anywhere}
+.type-reveal .read-time {display:inline-block;color:#ffda76;font:700 1.2em/1.1 var(--pixel);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(min-width:651px){
+  #stage > .ai-seats {padding-inline:14%}
+  #stage .ai-seats > .seat {width:20cqw}
+  #stage > .desk {bottom:4%}
+  #stage .red-wrap {width:25.4%;transform:translateY(calc(-5% - max(10px,1cqw)))}
+  #stage .player .plate .nick {font-size:clamp(13px,1.95cqw,37px)}
+  #stage .player .plate .status {font-size:clamp(10px,1.25cqw,25px)}
+}
+.type-reveal {padding:clamp(14px,2.8vh,28px) 0 12px}
+.type-reveal p {margin:0;color:#e4dbf2;font-size:clamp(14px,1.4vw,20px)}
+.type-reveal h1 {margin:5px 0 9px;color:#a0f4d3;font:700 clamp(31px,4.8vw,69px)/1.1 var(--pixel);letter-spacing:-.025em;text-shadow:0 4px #075b57;animation:type-land 280ms steps(5,end) both}
+@keyframes type-land {from{transform:translateY(-5px);color:#fff0bf}to{transform:translateY(0);color:#a0f4d3}}
+.prediction {display:flex;align-items:baseline;flex-wrap:wrap;gap:5px 12px;padding:10px 0 15px;color:#ffe3a3}
+.prediction b {font:700 clamp(16px,1.75vw,24px) var(--pixel)}
+.prediction small {color:#cdc5df;font-size:13px}
+.debrief-stats {border-block:2px solid #595371;background:#252140;display:grid;grid-template-columns:1.2fr 1fr 1fr;padding:12px 0}
+.debrief-stats div {padding-left:clamp(10px,2vw,24px);color:#e0d8ef;font-size:14px}
+.debrief-stats div+div {border-left:1px solid #615876}
+.debrief-stats strong {display:block;margin-top:5px;color:#fff0cb;font:700 clamp(23px,3.2vw,44px)/1.1 var(--pixel);font-variant-numeric:tabular-nums}
+.debrief-stats small {font:700 .48em var(--pixel)}
+.debrief-stats [data-place="1"] {color:#ffda76}
+.debrief-stats [data-place="2"] {color:#d9e7f5}
+.debrief-stats [data-place="3"] {color:#efaf88}
+.record-flag {display:inline-block;vertical-align:middle;margin-left:.45em;padding:3px 5px;background:#ffda76;color:#36263b;font:700 12px/1 var(--pixel)}
+.record-flag[hidden] {display:none}
+.round-receipt {list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:18px 0;padding:0}
+.round-receipt li {min-width:0;background:#24203d;padding:6px 8px;border-top:3px solid #9b7293}
+.round-receipt li.safe {border-color:#7ce4bf;background:#1e363a}
+.round-receipt li small,.round-receipt li span {display:block;color:#d2c7dd;font-size:12px}
+.round-receipt li strong {display:block;margin:3px 0;color:#f3c3bf;font:700 clamp(11px,1.1vw,16px) var(--pixel)}
+.round-receipt li.safe strong {color:#9cf2d1}
+#handoff {display:block;width:100%;padding:10px 6px;background:#302946;border:1px solid #827292;color:#ffe5a3;cursor:pointer;font:700 clamp(14px,1.6vw,20px) var(--pixel)}
+#handoff:focus-visible {outline:3px solid #fff0bb}
+@media(max-width:650px){.debrief-stats div{font-size:12px}.round-receipt li{padding:6px 2px;text-align:center}.round-receipt{gap:3px}.prediction{padding-bottom:10px}.debrief-head{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.type-reveal h1{animation:none}}
+@media(prefers-reduced-motion:reduce){#stage .bot[data-strike] .switch-art::after,.seat[data-strike] .impact::before,.seat[data-strike] .impact::after{display:none}}
+@media(max-width:650px){.record-flag{font-size:10px;padding:2px 3px;margin-left:3px}.debrief-stats strong{line-height:1.35}.prediction small{flex-basis:100%}}
+
+/* Anchor the booth table and all four seats to the available stage width. */
+@container (min-width: 1200px) {
+  #stage .stage-sky {
+    display:block;
+    inset:0;
+    background:url('/flight/ship-deck.webp') center bottom / 100% 40.45% no-repeat;
+  }
+  #stage .stage-sky > span {display:none}
+  #stage .stage-sky::before {
+    content:'';
+    position:absolute;
+    inset:auto 12% 1%;
+    height:12%;
+    border-radius:50%;
+    background:rgba(21,17,37,.48);
+  }
+  #stage .stage-sky::after {
+    content:'';
+    position:absolute;
+    left:7.5%;
+    top:55.5%;
+    width:85%;
+    height:42%;
+    background:url('/flight/round-table-pattern.svg') center / 100% 100% no-repeat,
+               url('/flight/round-table.webp') center / 100% 100% no-repeat;
+  }
+  #seat-ai1 {--socket-scale:.773}
+  #seat-ai2 {--socket-scale:.761}
+  #seat-ai3 {--socket-scale:.805}
+  #stage #seat-ai1 {transform:translate(1.55cqw,.2cqw)}
+  #stage #seat-ai2 {transform:translateY(-2.25cqw)}
+  #stage #seat-ai3 {transform:translate(-1.55cqw,.2cqw)}
+  #stage .bot-art .switch-art {
+    height:23.4%;
+    transform:scale(var(--socket-scale));
+    transform-origin:50% 27%;
+  }
+  #stage .red-wrap {
+    width:16.575%;
+    transform:translateY(calc(-5% - max(10px,1cqw) - 4.06cqw));
+  }
+}
+
+/* ───────── 우리 쪽에서 더한 것 ───────── */
+.game #stage { flex: none; } /* game.css의 .stage { flex: 1 0 auto } 대신 그림 비율(16:9) 그대로 */
+#stage > .warn { top: 27%; left: 4%; right: 4%; margin: 0; text-align: center; font-size: clamp(13px, 1.3cqw, 22px); } /* 수집 모드 연타 경고 */
+
+/* 종료 화면: 마지막 판만 평소와 다르게 누른 경우 (유형은 그 전 판까지의 기록으로) */
+.type-reveal .type-trick { margin-top: 8px; font-size: clamp(13px, 1.2vw, 17px); color: #ffd166; }
+.type-trick small { color: #cdc5df; }
+.debrief-collect { margin: 12px 0 0; font-size: 14px; color: #e0d8ef; }
+.debrief-collect b { color: #fff0cb; }
+.debrief-collect small { color: #cdc5df; }
+
+/* 종료 화면: 판 칩을 누르면 그 판 자세히 (칩 = 버튼) */
+.receipt-hint { margin: 16px 0 6px; font-size: 13px; color: #cdc5df; }
+#final .round-receipt { margin: 0 0 12px; }
+#final .round-receipt li { padding: 0; border: 0; background: none; }
+.round-receipt .rc { display: block; width: 100%; padding: 6px 8px; border: 0; border-top: 3px solid #9b7293; background: #24203d; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.round-receipt li.safe .rc { border-color: #7ce4bf; background: #1e363a; }
+.round-receipt .rc:hover { filter: brightness(1.15); }
+.round-receipt .rc[aria-expanded='true'] { box-shadow: inset 0 0 0 2px #ffe3a3; }
+#final .rc small span { display: inline; } /* 🔄 표시 */
+.rc-detail { margin: 0 0 14px; padding: 12px 0 4px; background: #24203d; box-shadow: inset 0 0 0 2px #595371; }
+.rc-detail[hidden] { display: none; }
+.rd-head { padding: 0 16px 8px; font-size: 15px; color: #e0d8ef; }
+.rd-head b { font-family: var(--pixel); color: #fff0cb; }
+.rd-head .ok { color: var(--teal); font-weight: 700; }
+.rd-head .ko { color: var(--red); font-weight: 700; }
+#handoff:disabled { opacity: 0.45; cursor: default; } /* 마지막 판 직후 2초 */
+@media (max-width: 650px) {
+  .round-receipt .rc { padding: 6px 2px; text-align: center; }
+  .rd-head { padding: 0 10px 8px; font-size: 13px; }
+}
