@@ -569,7 +569,7 @@ async function finishGame() {
       <span><b>AI 포획 예상</b> 판 시작 전에 AI가 계산한 '잡을 확률' (점수 보너스)</span>
       <span><b>읽힌 정도</b> 실제로 누른 시각 근처(±0.25초)에 AI가 걸었던 확률</span>
     </div>
-    <button type="button" class="final-next" disabled>${TOUCH ? '처음 화면으로' : '스페이스바를 누르면 다음 사람 차례'}</button>
+    <button type="button" class="final-next" disabled>${TOUCH ? '처음 화면으로' : '스페이스바나 엔터를 누르면 다음 사람 차례'}</button>
   </div>`;
   $('final').scrollTop = 0;
   $('final').classList.remove('hidden');
