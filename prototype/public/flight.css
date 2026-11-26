@@ -24,19 +24,21 @@ body.game {background:#0d1025;color:#f9edcf;}
 #stage .bot-art {width:100%;aspect-ratio:1;isolation:isolate;filter:none;animation:none;overflow:visible}
 #stage .bot .plate {position:absolute;bottom:101%;inset-inline:-10%;gap:0;text-align:center;pointer-events:none}
 #stage .plate .name {font:700 clamp(10px,1.36cqw,24px)/1.15 var(--pixel);letter-spacing:.065em;color:#fcf0d6;text-shadow:1px 2px #1a192d}
+#stage .bot .plate .name {font-size:clamp(14px,2.12cqw,41px);line-height:1.08}
 #stage .plate .status {font-size:clamp(10px,.91cqw,16px);min-height:0;line-height:1.25;color:#fff0df;text-shadow:1px 1px 2px #151124, -1px -1px 3px #151124}
 #stage .bot:not(.pressed):not(.out) .status {visibility:hidden}
 #stage .figure {position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}
-.figure.ready,.figure.body,.figure.result {z-index:1}
-.figure.body,.figure.result {visibility:hidden}
-#stage .bot[data-strike] .figure.body {visibility:visible;animation:visor-hit 250ms steps(1,end) both}
-@keyframes visor-hit {0%,73%,100% {opacity:0} 20%,72% {opacity:1}}
+.figure.ready,.figure.body,.figure.result,.figure.rear {z-index:1}
+.figure.body,.figure.result,.figure.stroke {visibility:hidden}
+#stage .bot[data-strike] .figure.ready {visibility:hidden}
 #stage[data-phase="result"] .bot:is(.safe,.out) .figure:is(.stroke,.ready,.body) {visibility:hidden}
 #stage[data-phase="result"] .bot:is(.safe,.out) .figure.result {visibility:visible}
-.figure.stroke {z-index:4;background-position:left center;background-size:700% 100%;background-repeat:no-repeat}
-#stage .bot[data-strike] .figure.stroke {animation:arm-stroke 250ms both}
+.figure.stroke {background-position:left center;background-size:700% 100%;background-repeat:no-repeat}
+/* Both copies use the same frame. Only the striking fingers can cover the button. */
+.figure.fingers {z-index:4;clip-path:inset(73% 44% 8% 22%)}
+#stage .bot[data-strike] .figure.stroke {visibility:visible;animation:arm-stroke 250ms both}
 @keyframes arm-stroke {0% {background-position:0% 50%;animation-timing-function:steps(6,end)} 24%,50% {background-position:100% 50%;animation-timing-function:steps(6,end)} 94%,100% {background-position:0% 50%}}
-#stage:is([data-phase="ready"],[data-phase="entry"]) .bot .figure:is(.ready,.stroke) {animation:breathe 3.3s steps(2,end) infinite;animation-delay:var(--breath-delay,0s)}
+#stage:is([data-phase="ready"],[data-phase="entry"]) .bot .figure.ready {animation:breathe 3.3s steps(2,end) infinite;animation-delay:var(--breath-delay,0s)}
 #stage .bot:nth-child(2) {--breath-delay:-1.4s}
 #stage .bot:nth-child(3) {--breath-delay:-2.2s}
 @keyframes breathe {0%,100% {transform:none} 50% {transform:translateY(-2px)}}
@@ -48,10 +50,11 @@ body.game {background:#0d1025;color:#f9edcf;}
 .cap {width:73%;height:71%;left:13.5%;bottom:24%;z-index:2;will-change:transform}
 .lip {z-index:3}
 .bot-art .switch-art {position:absolute;z-index:2;width:48%;height:22%;left:26%;bottom:2%}
+#seat-ai2 .cap {height:auto;bottom:29%;image-rendering:pixelated;--cap-travel:34%}
 .seat[data-strike] .cap {animation:cap-stroke 250ms both}
 @keyframes cap-stroke {0% {transform:none;animation-timing-function:steps(6,end)} 14%,49% {transform:translateY(23%);animation-timing-function:steps(6,end)} 87%,100% {transform:none}}
 .bot[data-strike] .cap {animation-name:cap-contact}
-@keyframes cap-contact {0%,12% {transform:none;animation-timing-function:steps(3,end)} 24%,50% {transform:translateY(23%);animation-timing-function:steps(5,end)} 88%,100% {transform:none}}
+@keyframes cap-contact {0%,12% {transform:none;animation-timing-function:steps(3,end)} 24%,50% {transform:translateY(var(--cap-travel,23%));animation-timing-function:steps(5,end)} 88%,100% {transform:none}}
 #stage .bot[data-strike] .switch-art::after {content:'';position:absolute;z-index:5;left:27%;top:24%;width:4%;height:7%;background:#fff6d6;box-shadow:-.65cqw -.18cqw 0 var(--lamp),.26cqw -.52cqw 0 var(--lamp);pointer-events:none;animation:knuckle-contact 250ms steps(2,end) both}
 @keyframes knuckle-contact {0%,16%,47%,100% {opacity:0} 24%,34% {opacity:1;transform:translateY(-2px)}}
 #stage .callout {z-index:6;top:2%;left:-17%;width:39%;height:auto;aspect-ratio:1;display:grid;padding:0 0 .07em;font:700 clamp(18px,3.1cqw,56px)/1 var(--pixel);color:#27213d;background:#fff0c2;transition:none}
@@ -69,8 +72,10 @@ body.game {background:#0d1025;color:#f9edcf;}
 #stage #tap {position:absolute;inset:0;z-index:8;display:block;width:100%;height:100%;min-height:0;margin:0;padding:0;border:0;outline:0;background:transparent;box-shadow:none;filter:none;transform:none;color:transparent;font-size:0;opacity:1;pointer-events:auto}
 #stage #tap.hide {display:none}
 body.touch main {padding-bottom:12px}
-#stage .seat.player .plate {position:absolute;left:65%;top:46%;align-items:flex-start;flex-direction:column;gap:2px;background:#411f36e0;border-left:2px solid #dc987f;padding:.4cqw .8cqw;margin:0;box-shadow:none}
-#stage .player .nick {display:none}
+#stage .seat.player .plate {position:absolute;z-index:7;top:88%;left:50%;transform:translateX(-50%);width:max-content;max-width:110%;flex-direction:column;align-items:center;gap:clamp(4px,.42cqw,8px);margin:0;padding:0;background:none;box-shadow:none;pointer-events:none}
+#stage .seat.player .plate > span {text-shadow:-1px -1px #241828,1px -1px #241828,-1px 1px #241828,1px 2px #241828}
+#stage .player .plate .nick {color:var(--orange);margin:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;letter-spacing:1px;line-height:1.05}
+#stage .player .nick:empty {display:none}
 #stage .player .callout {left:-20%;top:1%;width:31%}
 #stage .warn {position:absolute;z-index:9}
 .game #timeline:empty {display:none}
@@ -96,11 +101,12 @@ body.touch main {padding-bottom:12px}
   #stage > .ai-seats {padding:0 3%;bottom:30%}
   #stage .ai-seats > .seat {width:31%}
   #stage .bot .plate {bottom:99%}
+  #stage .bot .plate .name {font-size:clamp(14px,4.1cqw,24px)}
   #stage .bot .plate .status {font-size:9px}
   #stage .callout {left:-3%;top:-1%}
-  #stage .red-wrap {width:47%;align-self:center}
-  #stage .seat.player .plate {left:75%;top:44%;padding:2px 4px}
-  #stage .seat.player .plate .status {font-size:9px}
+  #stage .red-wrap {width:47%;align-self:center;transform:translateY(-21px)}
+  #stage .player .plate .nick {font-size:14px}
+  #stage .seat.player .plate .status {font-size:11px}
   .game .entry-card {grid-template-columns:auto minmax(0,1fr) auto;padding:10px;gap:6px}
   .game .entry-title {font-size:12px}.game #entry-name {font-size:14px}
   .game .entry-start {font-size:14px;min-width:76px;padding:8px}
@@ -110,7 +116,9 @@ body.touch main {padding-bottom:12px}
 }
 @media(prefers-reduced-motion:reduce){
   #stage *,#stage *::before {animation:none!important;transition:none!important}
-  #stage .seat[data-strike] .cap {transform:translateY(23%)}
+  #stage .seat[data-strike] .cap {transform:translateY(var(--cap-travel,23%))}
+  #stage .bot[data-strike] .figure.body {visibility:visible}
+  #stage .bot .figure.rear {display:none}
   #stage .bot[data-strike] .figure.stroke {background-position:100% 50%}
 }
 
@@ -141,7 +149,7 @@ body.touch main {padding-bottom:12px}
 #stage .seat[data-together] .callout {background:#ffab86;outline:2px solid #ffcd91}
 #stage .sign-side b {font-size:clamp(21px,2.65cqw,46px);font-variant-numeric:tabular-nums}
 #stage .sign-side small {font-size:.62em}
-#stage .player .plate .status {font-family:var(--pixel);font-size:clamp(10px,1.04cqw,18px)}
+#stage .player .plate .status {font-family:var(--pixel);line-height:1.12}
 @media (min-width:900px){.game main {max-width:min(100%,calc(160svh + 16px),1920px)}}
 #final:not(.hidden){overflow:auto;align-items:flex-start}
 #final .debrief {margin:auto;width:min(760px,100%);padding:clamp(16px,3vw,32px);text-align:left;background:#1b1939;color:#fff0cf}
@@ -152,7 +160,14 @@ body.touch main {padding-bottom:12px}
 #final .debrief,#ai-panel,#timeline,#stage .plate,#stage .plate .status {font-family:var(--pixel)}
 .type-reveal p,.prediction {word-break:keep-all;overflow-wrap:anywhere}
 .type-reveal .read-time {display:inline-block;color:#ffda76;font:700 1.2em/1.1 var(--pixel);font-variant-numeric:tabular-nums;white-space:nowrap}
-@media(min-width:651px){#stage > .desk{bottom:4%} #stage .red-wrap{transform:translateY(-5%)}}
+@media(min-width:651px){
+  #stage > .ai-seats {padding-inline:14%}
+  #stage .ai-seats > .seat {width:20cqw}
+  #stage > .desk {bottom:4%}
+  #stage .red-wrap {width:25.4%;transform:translateY(calc(-5% - max(10px,1cqw)))}
+  #stage .player .plate .nick {font-size:clamp(13px,1.95cqw,37px)}
+  #stage .player .plate .status {font-size:clamp(10px,1.25cqw,25px)}
+}
 .type-reveal {padding:clamp(14px,2.8vh,28px) 0 12px}
 .type-reveal p {margin:0;color:#e4dbf2;font-size:clamp(14px,1.4vw,20px)}
 .type-reveal h1 {margin:5px 0 9px;color:#a0f4d3;font:700 clamp(31px,4.8vw,69px)/1.1 var(--pixel);letter-spacing:-.025em;text-shadow:0 4px #075b57;animation:type-land 280ms steps(5,end) both}
@@ -183,3 +198,46 @@ body.touch main {padding-bottom:12px}
 @media(prefers-reduced-motion:reduce){#stage .bot[data-strike] .switch-art::after,.seat[data-strike] .impact::before,.seat[data-strike] .impact::after{display:none}}
 @media(max-width:650px){.record-flag{font-size:10px;padding:2px 3px;margin-left:3px}.debrief-stats strong{line-height:1.35}.prediction small{flex-basis:100%}}
 .game .entry-start {background-color:#aa342f;color:#fff4dc}
+
+/* Anchor the booth table and all four seats to the available stage width. */
+@container (min-width: 1200px) {
+  #stage .stage-sky {
+    display:block;
+    inset:0;
+    background:url('/flight/ship-deck.webp') center bottom / 100% 40.45% no-repeat;
+  }
+  #stage .stage-sky > span {display:none}
+  #stage .stage-sky::before {
+    content:'';
+    position:absolute;
+    inset:auto 12% 1%;
+    height:12%;
+    border-radius:50%;
+    background:rgba(21,17,37,.48);
+  }
+  #stage .stage-sky::after {
+    content:'';
+    position:absolute;
+    left:7.5%;
+    top:55.5%;
+    width:85%;
+    height:42%;
+    background:url('/flight/round-table-pattern.svg') center / 100% 100% no-repeat,
+               url('/flight/round-table.webp') center / 100% 100% no-repeat;
+  }
+  #seat-ai1 {--socket-scale:.773}
+  #seat-ai2 {--socket-scale:.761}
+  #seat-ai3 {--socket-scale:.805}
+  #stage #seat-ai1 {transform:translate(1.55cqw,.2cqw)}
+  #stage #seat-ai2 {transform:translateY(-2.25cqw)}
+  #stage #seat-ai3 {transform:translate(-1.55cqw,.2cqw)}
+  #stage .bot-art .switch-art {
+    height:23.4%;
+    transform:scale(var(--socket-scale));
+    transform-origin:50% 27%;
+  }
+  #stage .red-wrap {
+    width:16.575%;
+    transform:translateY(calc(-5% - max(10px,1cqw) - 4.06cqw));
+  }
+}

@@ -8,8 +8,8 @@ const Flight = (() => {
     <img class="lip" src="${folder}socket-front.webp" alt=""><i class="impact"></i></span>`;
   function bot(name) {
     const image = (role) => `<img class="figure ${role}" src="${folder}${name}-${role}.webp" draggable="false" alt="">`;
-    const arm = `<span aria-hidden="true" class="figure stroke" style="background-image:url('/flight/${name}-stroke.webp')"></span>`;
-    return image('ready') + image('body') + image('result') + cap(name) + arm;
+    const stroke = (layer) => `<span aria-hidden="true" class="figure stroke ${layer}" style="background-image:url('${folder}${name}-stroke.webp')"></span>`;
+    return image('ready') + image('body') + image('result') + stroke('rear') + cap(name) + stroke('fingers');
   }
 
   // Use registered timestamps only. Consecutive collision partners share a spoken number.

@@ -90,8 +90,9 @@ function botSeatHtml(s) {
 // 내 자리: 빨간 큰 버튼 + 이름판 (휴대폰에서는 버튼 대신 화면 아래 큰 버튼을 씀)
 function playerSeatHtml() {
   return `<div class="seat player" id="seat-player">
-    <div class="red-wrap"><span class="red-btn" role="button" tabindex="0" aria-label="플레이어 버튼">${Flight.cap('red')}</span><span class="callout"></span></div>
-    <div class="plate"><span class="name">플레이어 <span id="nickname" class="nick"></span></span><span class="status">대기 중</span></div>
+    <div class="red-wrap"><span class="red-btn" role="button" tabindex="0" aria-label="플레이어 버튼">${Flight.cap('red')}</span><span class="callout"></span>
+      <div class="plate"><span id="nickname" class="name nick"></span><span class="status">대기 중</span></div>
+    </div>
   </div>`;
 }
 
