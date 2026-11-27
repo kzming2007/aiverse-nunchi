@@ -24,6 +24,8 @@
 
   <main>
     <!-- 조종석 장면 (16:9 그림 위에 비율로 배치): 전광판 → 시간 막대 → 둥근 탁자 뒤 AI 3명 → 탁자 가운데 플레이어 버튼 -->
+    <!-- stage-fit: PC(900px 이상)에서 장면을 남는 화면에 꽉 채우는 틀 (cockpit.css 맨 아래). 그보다 좁으면 없는 것처럼 동작 -->
+    <div class="stage-fit">
     <section id="stage" class="stage">
       <div class="stage-sky" aria-hidden="true"><span class="planet"></span><span class="ringed"></span></div>
       <div class="sign">
@@ -41,6 +43,7 @@
         <div id="player-seat" class="player-row"></div>
       </div>
     </section>
+    </div>
 
     <!-- 규칙 (대기 화면에만). 게임 중에는 장면만 보이고, 판별 세부 기록은 종료 화면의 '자세히보기'에서 -->
     <section id="rules" class="rules-box"></section>

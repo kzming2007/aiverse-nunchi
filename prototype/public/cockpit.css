@@ -261,3 +261,24 @@ body.touch main {padding-bottom:12px}
   .round-receipt .rc { padding: 6px 2px; text-align: center; }
   .rd-head { padding: 0 10px 8px; font-size: 13px; }
 }
+
+/* ───────── PC(900px 이상): 장면을 화면에 꽉 채움 (11/27) ─────────
+   장면은 16:9 그림이라 화면 비율이 다르면 빈 띠가 생김. 그래서
+   - 화면이 16:9보다 세로로 길면(16:10 노트북 전체 화면 등) 높이에 맞추고 양옆을 조금 잘라 냄 (너비의 12%까지, 양옆은 창틀 그림뿐)
+   - 화면이 16:9보다 가로로 길면(16:9 전체 화면 + 위쪽 표시줄) 너비에 맞추고 맨 아래 바닥을 조금 잘라 냄 (높이의 5%까지, 이름표 아래)
+   - 그 범위를 넘으면 가운데에 두고 남는 쪽에 띠
+   그림과 배치는 늘 16:9 그대로 (누르거나 늘리지 않음)
+   페이지는 굴러가지 않고, 종료 화면은 그 안에서 굴러감 */
+.stage-fit { display: contents; }
+@media (min-width: 900px) {
+  html { scrollbar-gutter: auto; }
+  body.game { height: 100svh; min-height: 0; overflow: hidden; }
+  .game main { flex: 1 1 0; min-height: 0; max-width: none; padding: 0; gap: 0; }
+  .stage-fit { display: flex; flex: 1 1 0; min-height: 0; align-items: safe center; justify-content: center; overflow: hidden; container-type: size; }
+  .game #stage {
+    flex: none;
+    width: clamp(min(100cqw, 186.67cqh), 177.78cqh, 112cqw);
+    aspect-ratio: 16 / 9;
+  }
+  .game .rules-box { flex: none; margin: 8px 14px 12px; }
+}
