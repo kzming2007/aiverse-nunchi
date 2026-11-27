@@ -34,7 +34,7 @@
   --cut: 10px;
   --edge: var(--frame);
   display: grid;
-  grid-template-columns: 110px 1fr auto;
+  grid-template-columns: 110px 1fr auto auto; /* 순위 · 닉네임 · 유형 · 점수 */
   align-items: center;
   gap: 20px;
   padding: 14px 30px;
@@ -46,6 +46,9 @@
 }
 .ranking .rank { text-align: center; font-weight: 700; color: var(--lav); }
 .ranking .who { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; color: var(--cream); }
+/* AI가 본 플레이 유형 (두 유형이 비슷하면 두 줄) */
+.ranking .kind { display: flex; flex-direction: column; gap: 0.12em; align-items: stretch; font-size: 0.5em; font-weight: 700; }
+.ranking .kind i { padding: 0.18em 0.5em 0.24em; background: var(--ink); box-shadow: inset 0 0 0 2px var(--teal); color: var(--teal); font-style: normal; text-align: center; white-space: nowrap; line-height: 1.15; }
 .ranking .pts { font-weight: 700; color: var(--cream); font-variant-numeric: tabular-nums; }
 .ranking .pts small { margin-left: 4px; font-size: 0.5em; color: var(--lav); }
 
@@ -121,10 +124,27 @@
   .board main { padding: 20px 16px 40px; }
   .board-title { font-size: 36px; }
   .board-sub { font-size: 15px; }
-  .ranking .row { grid-template-columns: 56px 1fr auto; gap: 12px; padding: 12px 16px; font-size: 22px; }
+  /* 좁은 화면: 유형은 닉네임 아래 줄에 (닉네임이 잘리지 않게) */
+  .ranking .row { grid-template-columns: 56px 1fr auto; grid-template-areas: 'rank who pts' 'rank kind pts'; gap: 4px 12px; padding: 12px 16px; font-size: 22px; }
+  .ranking .rank { grid-area: rank; }
+  .ranking .who { grid-area: who; }
+  .ranking .pts { grid-area: pts; }
+  .ranking .kind { grid-area: kind; flex-direction: row; gap: 4px; justify-self: start; font-size: 0.55em; }
+  .ranking .kind:empty { display: none; }
   .ranking .row.top { padding: 14px 16px; font-size: 26px; }
   .modal-card { --cut: 12px; padding: 22px 16px; }
   .d-name { font-size: 28px; }
   .d-score { font-size: 34px; }
   .rounds { grid-template-columns: 1fr; }
+}
+
+/* 세로로 세운 모니터 (예: 1080×1920): 화면 너비에 맞춰 칸과 글자를 크게 (11/27) */
+@media (orientation: portrait) and (min-width: 801px) {
+  .board main { max-width: none; padding: 2.4vw 2.6vw 4vw; }
+  .board-title { font-size: 8vw; }
+  .board-sub { margin: 1vw 0 2.6vw; font-size: 2.6vw; }
+  .ranking { gap: 1.1vw; }
+  .ranking .row { --cut: 1.1vw; grid-template-columns: 1.9em 1fr auto auto; gap: 2vw; padding: 1.7vw 3vw; font-size: 5vw; }
+  .ranking .row.top { padding: 2.1vw 3vw; font-size: 5.8vw; }
+  .ranking .empty { font-size: 3.4vw; }
 }

@@ -73,6 +73,20 @@ const DB = (() => {
       return data.map((g) => ({ rank: g.rank, gameId: g.game_id, nickname: g.nickname, totalScore: g.total_score }));
     },
 
+    // 현황판의 유형 표시용: 게임마다 판별 누른 시각과 그 판 앞뒤의 AI 판단(유형 확률)만 가져옴
+    async roundBeliefs(gameIds) {
+      const rows = [];
+      for (let i = 0; i < gameIds.length; i += 50) {
+        const { data, error } = await client
+          .from('nunchi_rounds')
+          .select('game_id, round, time_ms, before:ai->before, after:ai->after')
+          .in('game_id', gameIds.slice(i, i + 50)); // 한 번에 50게임(500줄)씩
+        if (error) throw error;
+        rows.push(...data);
+      }
+      return rows;
+    },
+
     async gameDetail(gameId) {
       const [game, rounds] = await Promise.all([
         client.from('nunchi_ranking').select('*').eq('game_id', gameId).maybeSingle(),

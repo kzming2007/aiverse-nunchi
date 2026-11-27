@@ -8,6 +8,49 @@ const $ = (id) => document.getElementById(id);
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 const POPUP_AUTO_CLOSE_MS = 20 * 1000; // 팝업을 열어둔 채 떠나도 랭킹이 다시 보이도록
 
+// ───────── 플레이 유형 (AI가 본 유형, 게임 종료 화면과 같은 규칙) ─────────
+// 마지막 판에 저장된 AI 판단(ai.after)의 1위 유형. 1·2위가 12%p 안이면 둘 다.
+// 마지막 판 하나로 판단이 흔들렸으면 그 전 판까지의 판단(ai.before)으로 (game.js의 styleBelief와 같은 기준)
+const TYPE_NAME = { instant: '즉시형', fixed: '공격형', follow: '눈치형', hold: '버티기형', random: '랜덤형' }; // ai/model.js의 TYPES
+const typeCache = new Map(); // gameId → 유형 이름 배열 (끝난 게임은 바뀌지 않음)
+
+const sortProbs = (probs) =>
+  Object.entries(probs)
+    .filter(([id]) => TYPE_NAME[id])
+    .map(([id, prob]) => ({ id, prob: Number(prob) }))
+    .sort((a, b) => b.prob - a.prob);
+
+function typeNames(rounds) {
+  const last = rounds.reduce((a, b) => (!a || b.round > a.round ? b : a), null);
+  if (!last || !last.after || !rounds.some((r) => r.time_ms !== null)) return [];
+  let ranked = sortProbs(last.after);
+  if (!ranked.length) return [];
+  if (rounds.length >= 2 && last.before) {
+    const before = sortProbs(last.before);
+    if (before.length) {
+      const nowOfBefore = ranked.find((x) => x.id === before[0].id)?.prob ?? 0;
+      const flipped = before[0].id !== ranked[0].id && ranked[0].prob < before[0].prob;
+      const dropped = before[0].prob >= 0.5 && before[0].prob - nowOfBefore > 0.3;
+      if (flipped || dropped) ranked = before;
+    }
+  }
+  const close = ranked.length > 1 && ranked[0].prob - ranked[1].prob < 0.12;
+  return ranked.slice(0, close ? 2 : 1).map((x) => TYPE_NAME[x.id]);
+}
+
+// 아직 유형을 모르는 게임만 불러옴. 실패해도 랭킹은 그대로 보여 줌
+async function loadTypes(list) {
+  const missing = list.map((g) => g.gameId).filter((id) => !typeCache.has(id));
+  if (!missing.length) return;
+  try {
+    const byGame = new Map(missing.map((id) => [id, []]));
+    (await DB.roundBeliefs(missing)).forEach((r) => byGame.get(r.game_id)?.push(r));
+    byGame.forEach((rounds, id) => typeCache.set(id, typeNames(rounds)));
+  } catch (err) {
+    console.error('유형 불러오기 실패', err);
+  }
+}
+
 // ───────── 랭킹 ─────────
 // newGameId: 방금 끝난 게임 (반짝이며 그 자리로 이동)
 function renderRanking(list, newGameId = null) {
@@ -25,6 +68,7 @@ function renderRanking(list, newGameId = null) {
       return `<li class="${cls}" data-game-id="${esc(g.gameId)}" tabindex="0">
         <span class="rank">${MEDAL[g.rank] || g.rank}</span>
         <span class="who">${esc(g.nickname)}</span>
+        <span class="kind">${(typeCache.get(g.gameId) || []).map((n) => `<i>${esc(n)}</i>`).join('')}</span>
         <span class="pts">${g.totalScore}<small>점</small></span>
       </li>`;
     })
@@ -125,7 +169,9 @@ function setConn(ok) {
 
 async function refresh(newGameId = null) {
   try {
-    renderRanking(await DB.ranking(), newGameId);
+    const list = await DB.ranking();
+    await loadTypes(list);
+    renderRanking(list, newGameId);
   } catch (err) {
     setConn(false);
     console.error('랭킹 불러오기 실패', err);
